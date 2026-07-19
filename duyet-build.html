@@ -257,6 +257,103 @@
             color: var(--text-light);
             font-weight: 500;
         }
+
+        .month-images {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .month-img-thumb {
+            position: relative;
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1.5px solid var(--border);
+            cursor: pointer;
+        }
+
+        .month-img-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .month-img-thumb .del-img {
+            position: absolute;
+            top: 1px;
+            right: 1px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 0.65rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .month-detail {
+            background: var(--card);
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+            margin-top: 8px;
+        }
+
+        .month-detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .month-upload-btn {
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1.5px dashed var(--border);
+            background: var(--bg);
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .month-upload-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .month-expanded {
+            display: none;
+        }
+
+        .month-expanded.open {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .img-lightbox {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+            cursor: pointer;
+        }
+
+        .img-lightbox img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 12px;
+        }
     </style>
 </head>
 <body>
@@ -301,7 +398,18 @@
     <script src="firebase-config.js"></script>
     <script>
         const db = firebase.firestore();
+        const R2_URL = 'https://gian-hang-r2.yosua-4131.workers.dev';
         let allUsers = [];
+
+        async function uploadToR2(file, path) {
+            const res = await fetch(R2_URL + '/' + path, {
+                method: 'PUT',
+                body: file,
+                headers: { 'Content-Type': file.type }
+            });
+            const data = await res.json();
+            return data.url;
+        }
 
         async function loadUsers() {
             const snapshot = await db.collection('buildUsers').orderBy('name').get();
@@ -344,6 +452,13 @@
             `).join('');
         }
 
+        function getMonthData(user, year, month) {
+            const val = user.years && user.years[year] && user.years[year][month];
+            if (typeof val === 'object' && val !== null) return val;
+            if (val === true) return { checked: true, images: [] };
+            return { checked: false, images: [] };
+        }
+
         function renderYears(user) {
             const years = user.years || {};
             const sortedYears = Object.keys(years).sort((a, b) => b - a);
@@ -357,12 +472,46 @@
                         <button class="btn-danger" onclick="deleteYear('${user.id}', '${year}')" style="font-size:0.8rem;cursor:pointer">Xóa năm</button>
                     </div>
                     <div class="months-grid">
-                        ${[1,2,3,4,5,6,7,8,9,10,11,12].map(m => `
-                            <div class="month-btn ${years[year][m] ? 'checked' : ''}" onclick="toggleMonth('${user.id}', '${year}', ${m})">
-                                T${m}
+                        ${[1,2,3,4,5,6,7,8,9,10,11,12].map(m => {
+                            const md = getMonthData(user, year, m);
+                            const imgCount = md.images ? md.images.length : 0;
+                            return `
+                            <div class="month-btn ${md.checked ? 'checked' : ''}" onclick="toggleMonthExpand('${user.id}', '${year}', ${m})">
+                                T${m}${imgCount > 0 ? ' ('+imgCount+'📷)' : ''}
                             </div>
-                        `).join('')}
+                            `;
+                        }).join('')}
                     </div>
+                    ${[1,2,3,4,5,6,7,8,9,10,11,12].map(m => {
+                        const md = getMonthData(user, year, m);
+                        return `
+                        <div class="month-expanded" id="month-${user.id}-${year}-${m}">
+                            <div class="month-detail">
+                                <div class="month-detail-header">
+                                    <strong>Tháng ${m}/${year}</strong>
+                                    <div>
+                                        <button class="month-btn ${md.checked ? 'checked' : ''}" style="padding:6px 12px;font-size:0.8rem" onclick="toggleMonth('${user.id}', '${year}', ${m})">
+                                            ${md.checked ? '✓ Đã duyệt' : 'Chưa duyệt'}
+                                        </button>
+                                        <label class="month-upload-btn">
+                                            📷 Thêm ảnh
+                                            <input type="file" accept="image/*" multiple style="display:none" onchange="uploadMonthImages(event, '${user.id}', '${year}', ${m})">
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="month-images">
+                                    ${(md.images || []).map((img, idx) => `
+                                        <div class="month-img-thumb">
+                                            <img src="${img}" onclick="showLightbox('${img}')">
+                                            <button class="del-img" onclick="deleteMonthImage('${user.id}', '${year}', ${m}, ${idx})">×</button>
+                                        </div>
+                                    `).join('')}
+                                    ${(!md.images || md.images.length === 0) ? '<span style="font-size:0.8rem;color:var(--text-light)">Chưa có ảnh</span>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                        `;
+                    }).join('')}
                 </div>
             `).join('');
         }
@@ -370,6 +519,59 @@
         function toggleDetail(id) {
             const el = document.getElementById('detail-' + id);
             el.classList.toggle('open');
+        }
+
+        function toggleMonthExpand(userId, year, month) {
+            const el = document.getElementById('month-' + userId + '-' + year + '-' + month);
+            el.classList.toggle('open');
+        }
+
+        function showLightbox(src) {
+            const lb = document.createElement('div');
+            lb.className = 'img-lightbox';
+            lb.innerHTML = '<img src="' + src + '">';
+            lb.onclick = () => lb.remove();
+            document.body.appendChild(lb);
+        }
+
+        async function uploadMonthImages(e, userId, year, month) {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+
+            const user = allUsers.find(u => u.id === userId);
+            const md = getMonthData(user, year, month);
+            const currentImages = md.images || [];
+
+            for (const file of files) {
+                const path = 'build/' + userId + '/' + year + '/' + month + '/' + Date.now() + '.jpg';
+                const url = await uploadToR2(file, path);
+                currentImages.push(url);
+            }
+
+            await db.collection('buildUsers').doc(userId).update({
+                [`years.${year}.${month}`]: { checked: md.checked, images: currentImages }
+            });
+
+            user.years[year][month] = { checked: md.checked, images: currentImages };
+            renderUsers();
+            document.getElementById('month-' + userId + '-' + year + '-' + month).classList.add('open');
+            document.getElementById('detail-' + userId).classList.add('open');
+        }
+
+        async function deleteMonthImage(userId, year, month, imgIdx) {
+            if (!confirm('Xóa ảnh này?')) return;
+            const user = allUsers.find(u => u.id === userId);
+            const md = getMonthData(user, year, month);
+            md.images.splice(imgIdx, 1);
+
+            await db.collection('buildUsers').doc(userId).update({
+                [`years.${year}.${month}`]: { checked: md.checked, images: md.images }
+            });
+
+            user.years[year][month] = md;
+            renderUsers();
+            document.getElementById('month-' + userId + '-' + year + '-' + month).classList.add('open');
+            document.getElementById('detail-' + userId).classList.add('open');
         }
 
         async function addUser() {
@@ -400,7 +602,7 @@
             if (!year) return;
 
             const months = {};
-            for (let i = 1; i <= 12; i++) months[i] = false;
+            for (let i = 1; i <= 12; i++) months[i] = { checked: false, images: [] };
 
             await db.collection('buildUsers').doc(userId).update({
                 [`years.${year}`]: months
@@ -409,7 +611,7 @@
         }
 
         async function deleteYear(userId, year) {
-            if (!confirm(`Xóa năm ${year}?`)) return;
+            if (!confirm('Xóa năm ' + year + '?')) return;
             await db.collection('buildUsers').doc(userId).update({
                 [`years.${year}`]: firebase.firestore.FieldValue.delete()
             });
@@ -418,22 +620,17 @@
 
         async function toggleMonth(userId, year, month) {
             const user = allUsers.find(u => u.id === userId);
-            const current = user.years[year][month];
+            const md = getMonthData(user, year, month);
+            md.checked = !md.checked;
 
             await db.collection('buildUsers').doc(userId).update({
-                [`years.${year}.${month}`]: !current
+                [`years.${year}.${month}`]: md
             });
 
-            // Update local state for instant UI
-            user.years[year][month] = !current;
+            user.years[year][month] = md;
             renderUsers();
-        }
-
-        async function deleteMonth(userId, year, month) {
-            await db.collection('buildUsers').doc(userId).update({
-                [`years.${year}.${month}`]: firebase.firestore.FieldValue.delete()
-            });
-            loadUsers();
+            document.getElementById('month-' + userId + '-' + year + '-' + month).classList.add('open');
+            document.getElementById('detail-' + userId).classList.add('open');
         }
 
         // Init

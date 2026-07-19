@@ -41,17 +41,16 @@
                 <input type="text" id="pName" placeholder="Tên món" required>
                 <input type="number" id="pPrice" placeholder="Giá (VNĐ)" required>
                 <div class="image-upload-group">
-                    <label>Ảnh sản phẩm:</label>
+                    <label>Ảnh sản phẩm (có thể chọn nhiều ảnh):</label>
                     <div class="image-options">
-                        <div class="upload-area" id="uploadArea" onclick="document.getElementById('pFile').click()">
-                            <input type="file" id="pFile" accept="image/*" onchange="handleFileUpload(event)" style="display:none">
-                            <div id="uploadPreview" class="upload-preview">
+                        <div class="upload-area" onclick="document.getElementById('pFile').click()">
+                            <input type="file" id="pFile" accept="image/*" multiple onchange="handleProductFiles(event)" style="display:none">
+                            <div class="upload-preview">
                                 <span>📷 Bấm để chọn ảnh</span>
                             </div>
                         </div>
-                        <div class="or-divider">hoặc</div>
-                        <input type="text" id="pImage" placeholder="Dán link ảnh URL">
                     </div>
+                    <div id="imagePreviewList" class="image-preview-list"></div>
                 </div>
                 <textarea id="pDesc" placeholder="Mô tả ngắn"></textarea>
                 <div class="form-actions">
@@ -100,92 +99,127 @@
             if (name === 'notifications') loadNotifications();
         }
 
+        // === CONFIG ===
+        const R2_URL = 'https://gian-hang-r2.yosua-4131.workers.dev';
+
         // === PRODUCTS ===
-        let uploadedImageData = '';
+        let pendingFiles = [];
+        let existingImages = [];
 
-        function handleFileUpload(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(ev) {
-                const img = new Image();
-                img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    const maxSize = 400;
-                    let w = img.width, h = img.height;
-                    if (w > h) { if (w > maxSize) { h = h * maxSize / w; w = maxSize; } }
-                    else { if (h > maxSize) { w = w * maxSize / h; h = maxSize; } }
-                    canvas.width = w;
-                    canvas.height = h;
-                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                    uploadedImageData = canvas.toDataURL('image/jpeg', 0.7);
-                    document.getElementById('uploadPreview').innerHTML = '<img src="' + uploadedImageData + '">';
-                    document.getElementById('pImage').value = '';
-                };
-                img.src = ev.target.result;
-            };
-            reader.readAsDataURL(file);
+        async function uploadToR2(file, path) {
+            const res = await fetch(R2_URL + '/' + path, {
+                method: 'PUT',
+                body: file,
+                headers: { 'Content-Type': file.type }
+            });
+            const data = await res.json();
+            return data.url;
         }
 
-        function resetUploadPreview() {
-            uploadedImageData = '';
-            document.getElementById('uploadPreview').innerHTML = '<span>📷 Bấm để chọn ảnh</span>';
-            document.getElementById('pFile').value = '';
+        function handleProductFiles(e) {
+            const files = Array.from(e.target.files);
+            files.forEach(file => {
+                pendingFiles.push(file);
+                const reader = new FileReader();
+                reader.onload = function(ev) {
+                    renderImagePreviews();
+                };
+                reader.readAsDataURL(file);
+            });
+            renderImagePreviews();
+        }
+
+        function renderImagePreviews() {
+            const list = document.getElementById('imagePreviewList');
+            let html = '';
+            existingImages.forEach((url, i) => {
+                html += '<div class="img-thumb"><img src="' + url + '"><button onclick="removeExistingImage(' + i + ')">×</button></div>';
+            });
+            pendingFiles.forEach((file, i) => {
+                const url = URL.createObjectURL(file);
+                html += '<div class="img-thumb"><img src="' + url + '"><button onclick="removePendingFile(' + i + ')">×</button></div>';
+            });
+            list.innerHTML = html;
+        }
+
+        function removeExistingImage(i) {
+            existingImages.splice(i, 1);
+            renderImagePreviews();
+        }
+
+        function removePendingFile(i) {
+            pendingFiles.splice(i, 1);
+            renderImagePreviews();
         }
 
         function openProductForm(id, data) {
             document.getElementById('productForm').classList.remove('hidden');
-            resetUploadPreview();
+            pendingFiles = [];
+            existingImages = [];
+            document.getElementById('pFile').value = '';
             if (id && data) {
                 document.getElementById('formTitle').textContent = 'Sửa món';
                 document.getElementById('editId').value = id;
                 document.getElementById('pName').value = data.name;
                 document.getElementById('pPrice').value = data.price;
                 document.getElementById('pDesc').value = data.description || '';
-                if (data.image && data.image.startsWith('data:')) {
-                    uploadedImageData = data.image;
-                    document.getElementById('uploadPreview').innerHTML = '<img src="' + data.image + '">';
-                    document.getElementById('pImage').value = '';
-                } else {
-                    document.getElementById('pImage').value = data.image || '';
-                }
+                existingImages = data.images || (data.image ? [data.image] : []);
             } else {
                 document.getElementById('formTitle').textContent = 'Thêm món mới';
                 document.getElementById('editId').value = '';
                 document.getElementById('pName').value = '';
                 document.getElementById('pPrice').value = '';
-                document.getElementById('pImage').value = '';
                 document.getElementById('pDesc').value = '';
             }
+            renderImagePreviews();
         }
 
         function closeProductForm() {
             document.getElementById('productForm').classList.add('hidden');
-            resetUploadPreview();
+            pendingFiles = [];
+            existingImages = [];
         }
 
         async function saveProduct() {
             const id = document.getElementById('editId').value;
-            const imageUrl = uploadedImageData || document.getElementById('pImage').value.trim();
+            const btn = document.querySelector('#productForm .btn-primary');
+            btn.textContent = 'Đang lưu...';
+            btn.disabled = true;
+
+            const productId = id || db.collection('products').doc().id;
+            const uploadedUrls = [];
+            for (let i = 0; i < pendingFiles.length; i++) {
+                const path = 'products/' + productId + '/' + Date.now() + '-' + i + '.jpg';
+                const url = await uploadToR2(pendingFiles[i], path);
+                uploadedUrls.push(url);
+            }
+
+            const allImages = [...existingImages, ...uploadedUrls];
             const data = {
                 name: document.getElementById('pName').value.trim(),
                 price: parseInt(document.getElementById('pPrice').value),
-                image: imageUrl,
+                images: allImages,
+                image: allImages[0] || '',
                 description: document.getElementById('pDesc').value.trim(),
                 active: true,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             };
 
-            if (!data.name || !data.price) return alert('Nhập tên và giá!');
+            if (!data.name || !data.price) {
+                btn.textContent = 'Lưu';
+                btn.disabled = false;
+                return alert('Nhập tên và giá!');
+            }
 
             if (id) {
                 await db.collection('products').doc(id).update(data);
             } else {
                 data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-                await db.collection('products').add(data);
+                await db.collection('products').doc(productId).set(data);
             }
 
+            btn.textContent = 'Lưu';
+            btn.disabled = false;
             closeProductForm();
             loadProducts();
         }
