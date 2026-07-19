@@ -430,7 +430,7 @@
                 headers: { 'Content-Type': 'image/jpeg' }
             });
             const data = await res.json();
-            return data.url;
+            return data.url || (R2_URL + '/' + path);
         }
 
         async function loadUsers() {
@@ -570,7 +570,7 @@
             for (const file of files) {
                 const path = 'build/' + userId + '/' + year + '/' + month + '/' + Date.now() + '.jpg';
                 const url = await uploadToR2(file, path);
-                currentImages.push(url);
+                if (url) currentImages.push(url);
             }
 
             await db.collection('buildUsers').doc(userId).update({
@@ -578,9 +578,9 @@
             });
 
             user.years[year][month] = { checked: md.checked, images: currentImages };
-            renderUsers();
             openMonths.add(userId + '-' + year + '-' + month);
             openDetails.add(userId);
+            renderUsers();
         }
 
         async function deleteMonthImage(userId, year, month, imgIdx) {
@@ -594,9 +594,9 @@
             });
 
             user.years[year][month] = md;
-            renderUsers();
             openMonths.add(userId + '-' + year + '-' + month);
             openDetails.add(userId);
+            renderUsers();
         }
 
         async function addUser() {
@@ -663,9 +663,9 @@
             });
 
             user.years[year][month] = md;
-            renderUsers();
             openMonths.add(userId + '-' + year + '-' + month);
             openDetails.add(userId);
+            renderUsers();
         }
 
         // Init
