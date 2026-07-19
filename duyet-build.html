@@ -400,6 +400,8 @@
         const db = firebase.firestore();
         const R2_URL = 'https://gian-hang-r2.yosua-4131.workers.dev';
         let allUsers = [];
+        let openDetails = new Set();
+        let openMonths = new Set();
 
         async function uploadToR2(file, path) {
             const res = await fetch(R2_URL + '/' + path, {
@@ -441,7 +443,7 @@
                             <button onclick="deleteUser('${u.id}')">Xóa</button>
                         </div>
                     </div>
-                    <div class="user-detail" id="detail-${u.id}">
+                    <div class="user-detail ${openDetails.has(u.id) ? 'open' : ''}" id="detail-${u.id}">
                         ${renderYears(u)}
                         <div class="add-year-form">
                             <input type="number" id="yearInput-${u.id}" placeholder="Năm" value="${new Date().getFullYear()}">
@@ -485,7 +487,7 @@
                     ${[1,2,3,4,5,6,7,8,9,10,11,12].map(m => {
                         const md = getMonthData(user, year, m);
                         return `
-                        <div class="month-expanded" id="month-${user.id}-${year}-${m}">
+                        <div class="month-expanded ${openMonths.has(user.id+'-'+year+'-'+m) ? 'open' : ''}" id="month-${user.id}-${year}-${m}">
                             <div class="month-detail">
                                 <div class="month-detail-header">
                                     <strong>Tháng ${m}/${year}</strong>
@@ -517,13 +519,16 @@
         }
 
         function toggleDetail(id) {
-            const el = document.getElementById('detail-' + id);
-            el.classList.toggle('open');
+            if (openDetails.has(id)) openDetails.delete(id);
+            else openDetails.add(id);
+            renderUsers();
         }
 
         function toggleMonthExpand(userId, year, month) {
-            const el = document.getElementById('month-' + userId + '-' + year + '-' + month);
-            el.classList.toggle('open');
+            const key = userId + '-' + year + '-' + month;
+            if (openMonths.has(key)) openMonths.delete(key);
+            else openMonths.add(key);
+            renderUsers();
         }
 
         function showLightbox(src) {
@@ -554,8 +559,8 @@
 
             user.years[year][month] = { checked: md.checked, images: currentImages };
             renderUsers();
-            document.getElementById('month-' + userId + '-' + year + '-' + month).classList.add('open');
-            document.getElementById('detail-' + userId).classList.add('open');
+            openMonths.add(userId + '-' + year + '-' + month);
+            openDetails.add(userId);
         }
 
         async function deleteMonthImage(userId, year, month, imgIdx) {
@@ -570,8 +575,8 @@
 
             user.years[year][month] = md;
             renderUsers();
-            document.getElementById('month-' + userId + '-' + year + '-' + month).classList.add('open');
-            document.getElementById('detail-' + userId).classList.add('open');
+            openMonths.add(userId + '-' + year + '-' + month);
+            openDetails.add(userId);
         }
 
         async function addUser() {
@@ -629,8 +634,8 @@
 
             user.years[year][month] = md;
             renderUsers();
-            document.getElementById('month-' + userId + '-' + year + '-' + month).classList.add('open');
-            document.getElementById('detail-' + userId).classList.add('open');
+            openMonths.add(userId + '-' + year + '-' + month);
+            openDetails.add(userId);
         }
 
         // Init
