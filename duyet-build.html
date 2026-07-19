@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Duyệt Build - Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="admin.css">
+    <style>
+        .build-section { padding: 24px 0; }
+
+        .user-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .user-form input {
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .search-box {
+            margin-bottom: 16px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .user-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .user-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+        }
+
+        .user-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .user-header h3 {
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .user-header h3:hover {
+            color: var(--primary);
+        }
+
+        .user-actions button {
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-left: 6px;
+        }
+
+        .user-actions .btn-danger {
+            border-color: var(--primary);
+        }
+
+        .year-section {
+            margin-top: 10px;
+            padding: 12px;
+            background: var(--bg);
+            border-radius: 8px;
+        }
+
+        .year-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .year-header h4 {
+            font-size: 0.95rem;
+        }
+
+        .months-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+            gap: 8px;
+        }
+
+        .month-btn {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--card);
+            cursor: pointer;
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .month-btn:hover {
+            border-color: var(--primary);
+        }
+
+        .month-btn.checked {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+
+        .month-btn.checked::after {
+            content: ' ✓';
+        }
+
+        .add-year-form {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .add-year-form input {
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            width: 100px;
+            font-size: 0.85rem;
+        }
+
+        .add-year-form button {
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: none;
+            background: var(--primary);
+            color: #fff;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .user-detail {
+            display: none;
+        }
+
+        .user-detail.open {
+            display: block;
+        }
+
+        .stats {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 24px;
+            text-align: center;
+        }
+
+        .stat-card .num {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .stat-card .label {
+            font-size: 0.8rem;
+            color: var(--text-light);
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1 class="logo">📋 Duyệt Build</h1>
+            <nav class="admin-nav">
+                <a href="admin.html">Admin</a>
+                <a href="index.html">Shop</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container build-section">
+        <div class="stats">
+            <div class="stat-card">
+                <div class="num" id="totalUsers">0</div>
+                <div class="label">Người dùng</div>
+            </div>
+        </div>
+
+        <!-- Add user -->
+        <div class="user-form">
+            <input type="text" id="newUserName" placeholder="Tên người dùng">
+            <input type="text" id="newUserPhone" placeholder="SĐT (tùy chọn)">
+            <button class="btn-primary" onclick="addUser()">+ Thêm</button>
+        </div>
+
+        <!-- Search -->
+        <div class="search-box">
+            <input type="text" id="searchUser" placeholder="🔍 Tìm người dùng..." oninput="renderUsers()">
+        </div>
+
+        <!-- User list -->
+        <div id="userList" class="user-list">
+            <p class="loading">Đang tải...</p>
+        </div>
+    </main>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script>
+        const db = firebase.firestore();
+        let allUsers = [];
+
+        async function loadUsers() {
+            const snapshot = await db.collection('buildUsers').orderBy('name').get();
+            allUsers = [];
+            snapshot.forEach(doc => {
+                allUsers.push({ id: doc.id, ...doc.data() });
+            });
+            document.getElementById('totalUsers').textContent = allUsers.length;
+            renderUsers();
+        }
+
+        function renderUsers() {
+            const query = document.getElementById('searchUser').value.toLowerCase();
+            const filtered = query
+                ? allUsers.filter(u => u.name.toLowerCase().includes(query) || (u.phone && u.phone.includes(query)))
+                : allUsers;
+
+            const list = document.getElementById('userList');
+            if (filtered.length === 0) {
+                list.innerHTML = '<p class="empty">Không tìm thấy</p>';
+                return;
+            }
+
+            list.innerHTML = filtered.map(u => `
+                <div class="user-card">
+                    <div class="user-header">
+                        <h3 onclick="toggleDetail('${u.id}')">${u.name} ${u.phone ? '(' + u.phone + ')' : ''}</h3>
+                        <div class="user-actions">
+                            <button onclick="deleteUser('${u.id}')">Xóa</button>
+                        </div>
+                    </div>
+                    <div class="user-detail" id="detail-${u.id}">
+                        ${renderYears(u)}
+                        <div class="add-year-form">
+                            <input type="number" id="yearInput-${u.id}" placeholder="Năm" value="${new Date().getFullYear()}">
+                            <button onclick="addYear('${u.id}')">+ Thêm năm</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderYears(user) {
+            const years = user.years || {};
+            const sortedYears = Object.keys(years).sort((a, b) => b - a);
+
+            if (sortedYears.length === 0) return '<p style="font-size:0.85rem;color:var(--text-light)">Chưa có năm nào</p>';
+
+            return sortedYears.map(year => `
+                <div class="year-section">
+                    <div class="year-header">
+                        <h4>Năm ${year}</h4>
+                        <button class="btn-danger" onclick="deleteYear('${user.id}', '${year}')" style="font-size:0.8rem;cursor:pointer">Xóa năm</button>
+                    </div>
+                    <div class="months-grid">
+                        ${[1,2,3,4,5,6,7,8,9,10,11,12].map(m => `
+                            <div class="month-btn ${years[year][m] ? 'checked' : ''}" onclick="toggleMonth('${user.id}', '${year}', ${m})">
+                                T${m}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function toggleDetail(id) {
+            const el = document.getElementById('detail-' + id);
+            el.classList.toggle('open');
+        }
+
+        async function addUser() {
+            const name = document.getElementById('newUserName').value.trim();
+            const phone = document.getElementById('newUserPhone').value.trim();
+            if (!name) return alert('Nhập tên!');
+
+            await db.collection('buildUsers').add({
+                name,
+                phone,
+                years: {},
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            document.getElementById('newUserName').value = '';
+            document.getElementById('newUserPhone').value = '';
+            loadUsers();
+        }
+
+        async function deleteUser(id) {
+            if (!confirm('Xóa người dùng này?')) return;
+            await db.collection('buildUsers').doc(id).delete();
+            loadUsers();
+        }
+
+        async function addYear(userId) {
+            const year = document.getElementById('yearInput-' + userId).value;
+            if (!year) return;
+
+            const months = {};
+            for (let i = 1; i <= 12; i++) months[i] = false;
+
+            await db.collection('buildUsers').doc(userId).update({
+                [`years.${year}`]: months
+            });
+            loadUsers();
+        }
+
+        async function deleteYear(userId, year) {
+            if (!confirm(`Xóa năm ${year}?`)) return;
+            await db.collection('buildUsers').doc(userId).update({
+                [`years.${year}`]: firebase.firestore.FieldValue.delete()
+            });
+            loadUsers();
+        }
+
+        async function toggleMonth(userId, year, month) {
+            const user = allUsers.find(u => u.id === userId);
+            const current = user.years[year][month];
+
+            await db.collection('buildUsers').doc(userId).update({
+                [`years.${year}.${month}`]: !current
+            });
+
+            // Update local state for instant UI
+            user.years[year][month] = !current;
+            renderUsers();
+        }
+
+        async function deleteMonth(userId, year, month) {
+            await db.collection('buildUsers').doc(userId).update({
+                [`years.${year}.${month}`]: firebase.firestore.FieldValue.delete()
+            });
+            loadUsers();
+        }
+
+        // Init
+        loadUsers();
+    </script>
+</body>
+</html>

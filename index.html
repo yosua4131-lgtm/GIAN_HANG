@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quán Bán Hàng</title>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1 class="logo">🍜 Quán Bán Hàng</h1>
+            <nav>
+                <a href="admin.html" class="btn-admin">Admin</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="menu-section">
+            <h2>Menu</h2>
+            <div id="menuGrid" class="menu-grid">
+                <p class="loading">Đang tải menu...</p>
+            </div>
+        </section>
+
+        <div id="cartFloat" class="cart-float hidden">
+            <span id="cartCount">0</span> món — <span id="cartTotal">0đ</span>
+            <button onclick="openCart()">Xem giỏ</button>
+        </div>
+
+        <div id="cartModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>🛒 Giỏ hàng</h3>
+                    <button class="close-btn" onclick="closeCart()">&times;</button>
+                </div>
+                <div id="cartItems" class="cart-items"></div>
+                <div class="cart-footer">
+                    <div class="cart-total">Tổng: <strong id="cartTotalModal">0đ</strong></div>
+                    <form id="orderForm" onsubmit="submitOrder(event)">
+                        <input type="text" id="customerName" placeholder="Tên bạn" required>
+                        <input type="text" id="customerPhone" placeholder="SĐT (tùy chọn)">
+                        <textarea id="customerNote" placeholder="Ghi chú (ít đá, nhiều đường...)"></textarea>
+                        <button type="submit" class="btn-order">Đặt hàng</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script>
+        const db = firebase.firestore();
+        let cart = [];
+
+        async function loadMenu() {
+            const grid = document.getElementById('menuGrid');
+            const snapshot = await db.collection('products').where('active', '==', true).get();
+
+            if (snapshot.empty) {
+                grid.innerHTML = '<p class="empty">Chưa có món nào trong menu</p>';
+                return;
+            }
+
+            grid.innerHTML = '';
+            snapshot.forEach(doc => {
+                const item = { id: doc.id, ...doc.data() };
+                grid.innerHTML += renderMenuItem(item);
+            });
+        }
+
+        function renderMenuItem(item) {
+            return `
+                <div class="menu-item">
+                    <div class="item-img" style="background-image: url('${item.image || ''}')">
+                        ${!item.image ? '🍽️' : ''}
+                    </div>
+                    <div class="item-info">
+                        <h3>${item.name}</h3>
+                        <p class="item-desc">${item.description || ''}</p>
+                        <div class="item-bottom">
+                            <span class="item-price">${formatPrice(item.price)}</span>
+                            <button class="btn-add" onclick="addToCart('${item.id}', '${item.name.replace(/'/g, "\\'")}', ${item.price})">+ Thêm</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function addToCart(id, name, price) {
+            const existing = cart.find(c => c.id === id);
+            if (existing) {
+                existing.qty++;
+            } else {
+                cart.push({ id, name, price, qty: 1 });
+            }
+            updateCartUI();
+        }
+
+        function removeFromCart(id) {
+            cart = cart.filter(c => c.id !== id);
+            updateCartUI();
+        }
+
+        function changeQty(id, delta) {
+            const item = cart.find(c => c.id === id);
+            if (item) {
+                item.qty += delta;
+                if (item.qty <= 0) cart = cart.filter(c => c.id !== id);
+            }
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            const count = cart.reduce((s, c) => s + c.qty, 0);
+            const total = cart.reduce((s, c) => s + c.price * c.qty, 0);
+
+            document.getElementById('cartCount').textContent = count;
+            document.getElementById('cartTotal').textContent = formatPrice(total);
+            document.getElementById('cartTotalModal').textContent = formatPrice(total);
+            document.getElementById('cartFloat').classList.toggle('hidden', count === 0);
+
+            const cartItems = document.getElementById('cartItems');
+            if (cart.length === 0) {
+                cartItems.innerHTML = '<p class="empty">Giỏ hàng trống</p>';
+            } else {
+                cartItems.innerHTML = cart.map(c => `
+                    <div class="cart-item">
+                        <span class="cart-item-name">${c.name}</span>
+                        <div class="cart-item-controls">
+                            <button onclick="changeQty('${c.id}', -1)">−</button>
+                            <span>${c.qty}</span>
+                            <button onclick="changeQty('${c.id}', 1)">+</button>
+                        </div>
+                        <span class="cart-item-price">${formatPrice(c.price * c.qty)}</span>
+                        <button class="btn-remove" onclick="removeFromCart('${c.id}')">&times;</button>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function openCart() {
+            document.getElementById('cartModal').classList.remove('hidden');
+        }
+
+        function closeCart() {
+            document.getElementById('cartModal').classList.add('hidden');
+        }
+
+        async function submitOrder(e) {
+            e.preventDefault();
+            if (cart.length === 0) return alert('Giỏ hàng trống!');
+
+            const order = {
+                customer: document.getElementById('customerName').value.trim(),
+                phone: document.getElementById('customerPhone').value.trim(),
+                note: document.getElementById('customerNote').value.trim(),
+                items: cart.map(c => ({ id: c.id, name: c.name, price: c.price, qty: c.qty })),
+                total: cart.reduce((s, c) => s + c.price * c.qty, 0),
+                status: 'pending',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            await db.collection('orders').add(order);
+            await db.collection('notifications').add({
+                type: 'new_order',
+                message: `Đơn mới từ ${order.customer} - ${formatPrice(order.total)}`,
+                read: false,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            cart = [];
+            updateCartUI();
+            closeCart();
+            document.getElementById('orderForm').reset();
+            alert('Đặt hàng thành công! Cảm ơn bạn 🎉');
+        }
+
+        function formatPrice(n) {
+            return n.toLocaleString('vi-VN') + 'đ';
+        }
+
+        loadMenu();
+    </script>
+</body>
+</html>

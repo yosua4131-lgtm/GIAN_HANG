@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Quán Bán Hàng</title>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1 class="logo">⚙️ Admin</h1>
+            <nav class="admin-nav">
+                <a href="index.html">Xem Shop</a>
+                <a href="duyet-build.html">Duyệt Build</a>
+                <span id="notifBadge" class="notif-badge hidden">0</span>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container admin-main">
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('products')">Sản phẩm</button>
+            <button class="tab" onclick="switchTab('orders')">Đơn hàng</button>
+            <button class="tab" onclick="switchTab('notifications')">Thông báo</button>
+        </div>
+
+        <!-- Tab: Products -->
+        <section id="tab-products" class="tab-content active">
+            <div class="section-header">
+                <h2>Quản lý sản phẩm</h2>
+                <button class="btn-primary" onclick="openProductForm()">+ Thêm món</button>
+            </div>
+
+            <div id="productForm" class="form-card hidden">
+                <h3 id="formTitle">Thêm món mới</h3>
+                <input type="hidden" id="editId">
+                <input type="text" id="pName" placeholder="Tên món" required>
+                <input type="number" id="pPrice" placeholder="Giá (VNĐ)" required>
+                <input type="text" id="pImage" placeholder="Link ảnh (tùy chọn)">
+                <textarea id="pDesc" placeholder="Mô tả ngắn"></textarea>
+                <div class="form-actions">
+                    <button class="btn-primary" onclick="saveProduct()">Lưu</button>
+                    <button class="btn-secondary" onclick="closeProductForm()">Hủy</button>
+                </div>
+            </div>
+
+            <div id="productList" class="product-list">
+                <p class="loading">Đang tải...</p>
+            </div>
+        </section>
+
+        <!-- Tab: Orders -->
+        <section id="tab-orders" class="tab-content">
+            <h2>Đơn hàng</h2>
+            <div id="orderList" class="order-list">
+                <p class="loading">Đang tải...</p>
+            </div>
+        </section>
+
+        <!-- Tab: Notifications -->
+        <section id="tab-notifications" class="tab-content">
+            <h2>Thông báo</h2>
+            <button class="btn-secondary" onclick="clearNotifications()">Đánh dấu đã đọc tất cả</button>
+            <div id="notifList" class="notif-list">
+                <p class="loading">Đang tải...</p>
+            </div>
+        </section>
+    </main>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script>
+        const db = firebase.firestore();
+
+        // Tabs
+        function switchTab(name) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-' + name).classList.add('active');
+            event.target.classList.add('active');
+
+            if (name === 'orders') loadOrders();
+            if (name === 'notifications') loadNotifications();
+        }
+
+        // === PRODUCTS ===
+        function openProductForm(id, data) {
+            document.getElementById('productForm').classList.remove('hidden');
+            if (id && data) {
+                document.getElementById('formTitle').textContent = 'Sửa món';
+                document.getElementById('editId').value = id;
+                document.getElementById('pName').value = data.name;
+                document.getElementById('pPrice').value = data.price;
+                document.getElementById('pImage').value = data.image || '';
+                document.getElementById('pDesc').value = data.description || '';
+            } else {
+                document.getElementById('formTitle').textContent = 'Thêm món mới';
+                document.getElementById('editId').value = '';
+                document.getElementById('pName').value = '';
+                document.getElementById('pPrice').value = '';
+                document.getElementById('pImage').value = '';
+                document.getElementById('pDesc').value = '';
+            }
+        }
+
+        function closeProductForm() {
+            document.getElementById('productForm').classList.add('hidden');
+        }
+
+        async function saveProduct() {
+            const id = document.getElementById('editId').value;
+            const data = {
+                name: document.getElementById('pName').value.trim(),
+                price: parseInt(document.getElementById('pPrice').value),
+                image: document.getElementById('pImage').value.trim(),
+                description: document.getElementById('pDesc').value.trim(),
+                active: true,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            if (!data.name || !data.price) return alert('Nhập tên và giá!');
+
+            if (id) {
+                await db.collection('products').doc(id).update(data);
+            } else {
+                data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                await db.collection('products').add(data);
+            }
+
+            closeProductForm();
+            loadProducts();
+        }
+
+        async function deleteProduct(id) {
+            if (!confirm('Xóa món này?')) return;
+            await db.collection('products').doc(id).delete();
+            loadProducts();
+        }
+
+        async function toggleProduct(id, active) {
+            await db.collection('products').doc(id).update({ active: !active });
+            loadProducts();
+        }
+
+        async function loadProducts() {
+            const list = document.getElementById('productList');
+            const snapshot = await db.collection('products').get();
+
+            if (snapshot.empty) {
+                list.innerHTML = '<p class="empty">Chưa có sản phẩm</p>';
+                return;
+            }
+
+            list.innerHTML = '';
+            snapshot.forEach(doc => {
+                const d = doc.data();
+                list.innerHTML += `
+                    <div class="product-row ${!d.active ? 'inactive' : ''}">
+                        <div class="product-info">
+                            <strong>${d.name}</strong>
+                            <span>${formatPrice(d.price)}</span>
+                            <span class="badge ${d.active ? 'badge-green' : 'badge-gray'}">${d.active ? 'Đang bán' : 'Ẩn'}</span>
+                        </div>
+                        <div class="product-actions">
+                            <button onclick="toggleProduct('${doc.id}', ${d.active})">${d.active ? 'Ẩn' : 'Hiện'}</button>
+                            <button onclick="openProductForm('${doc.id}', ${JSON.stringify(d).replace(/"/g, '&quot;')})">Sửa</button>
+                            <button class="btn-danger" onclick="deleteProduct('${doc.id}')">Xóa</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // === ORDERS ===
+        async function loadOrders() {
+            const list = document.getElementById('orderList');
+            const snapshot = await db.collection('orders').orderBy('createdAt', 'desc').limit(50).get();
+
+            if (snapshot.empty) {
+                list.innerHTML = '<p class="empty">Chưa có đơn hàng</p>';
+                return;
+            }
+
+            list.innerHTML = '';
+            snapshot.forEach(doc => {
+                const d = doc.data();
+                const time = d.createdAt ? new Date(d.createdAt.toDate()).toLocaleString('vi-VN') : '';
+                const items = d.items.map(i => `${i.name} x${i.qty}`).join(', ');
+                list.innerHTML += `
+                    <div class="order-card">
+                        <div class="order-header">
+                            <strong>${d.customer}</strong>
+                            <span class="order-time">${time}</span>
+                        </div>
+                        <p class="order-items">${items}</p>
+                        ${d.note ? `<p class="order-note">📝 ${d.note}</p>` : ''}
+                        <div class="order-footer">
+                            <span class="order-total">${formatPrice(d.total)}</span>
+                            <select onchange="updateOrderStatus('${doc.id}', this.value)">
+                                <option value="pending" ${d.status === 'pending' ? 'selected' : ''}>Chờ xử lý</option>
+                                <option value="confirmed" ${d.status === 'confirmed' ? 'selected' : ''}>Đã xác nhận</option>
+                                <option value="done" ${d.status === 'done' ? 'selected' : ''}>Hoàn thành</option>
+                                <option value="cancelled" ${d.status === 'cancelled' ? 'selected' : ''}>Hủy</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        async function updateOrderStatus(id, status) {
+            await db.collection('orders').doc(id).update({ status });
+        }
+
+        // === NOTIFICATIONS ===
+        async function loadNotifications() {
+            const list = document.getElementById('notifList');
+            const snapshot = await db.collection('notifications').orderBy('createdAt', 'desc').limit(30).get();
+
+            if (snapshot.empty) {
+                list.innerHTML = '<p class="empty">Không có thông báo</p>';
+                return;
+            }
+
+            list.innerHTML = '';
+            snapshot.forEach(doc => {
+                const d = doc.data();
+                const time = d.createdAt ? new Date(d.createdAt.toDate()).toLocaleString('vi-VN') : '';
+                list.innerHTML += `
+                    <div class="notif-item ${!d.read ? 'unread' : ''}">
+                        <span>${d.message}</span>
+                        <small>${time}</small>
+                    </div>
+                `;
+            });
+        }
+
+        async function clearNotifications() {
+            const snapshot = await db.collection('notifications').where('read', '==', false).get();
+            const batch = db.batch();
+            snapshot.forEach(doc => batch.update(doc.ref, { read: true }));
+            await batch.commit();
+            loadNotifications();
+            checkNotifications();
+        }
+
+        async function checkNotifications() {
+            const snapshot = await db.collection('notifications').where('read', '==', false).get();
+            const badge = document.getElementById('notifBadge');
+            if (snapshot.size > 0) {
+                badge.textContent = snapshot.size;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function formatPrice(n) {
+            return n.toLocaleString('vi-VN') + 'đ';
+        }
+
+        // Init
+        loadProducts();
+        checkNotifications();
+    </script>
+</body>
+</html>
