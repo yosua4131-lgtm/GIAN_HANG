@@ -8,47 +8,76 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="admin.css">
     <style>
-        .build-section { padding: 24px 0; }
+        .build-section { padding: 28px 0; }
 
         .user-form {
             display: flex;
             gap: 10px;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
             flex-wrap: wrap;
+            background: var(--card);
+            padding: 18px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1.5px solid var(--border);
         }
 
         .user-form input {
-            padding: 10px 14px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
+            padding: 11px 16px;
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
             font-size: 0.9rem;
             flex: 1;
             min-width: 150px;
+            background: var(--bg);
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .user-form input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: #fff;
         }
 
         .search-box {
-            margin-bottom: 16px;
+            margin-bottom: 20px;
         }
 
         .search-box input {
             width: 100%;
-            padding: 10px 14px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 0.9rem;
+            padding: 13px 18px;
+            border: 1.5px solid var(--border);
+            border-radius: 14px;
+            font-size: 0.95rem;
+            background: var(--card);
+            box-shadow: var(--shadow);
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary);
         }
 
         .user-list {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 10px;
         }
 
         .user-card {
             background: var(--card);
-            border: 1px solid var(--border);
+            border: 1.5px solid var(--border);
             border-radius: var(--radius);
-            padding: 16px;
+            padding: 18px;
+            transition: all 0.2s;
+        }
+
+        .user-card:hover {
+            box-shadow: var(--shadow);
+            border-color: var(--primary-light);
         }
 
         .user-header {
@@ -61,6 +90,8 @@
         .user-header h3 {
             font-size: 1rem;
             cursor: pointer;
+            font-weight: 600;
+            transition: color 0.2s;
         }
 
         .user-header h3:hover {
@@ -68,63 +99,77 @@
         }
 
         .user-actions button {
-            padding: 4px 10px;
-            border-radius: 6px;
-            border: 1px solid var(--border);
+            padding: 5px 14px;
+            border-radius: 20px;
+            border: 1.5px solid var(--border);
             background: var(--bg);
             cursor: pointer;
             font-size: 0.8rem;
             margin-left: 6px;
+            font-weight: 500;
+            transition: all 0.2s;
         }
 
-        .user-actions .btn-danger {
+        .user-actions button:hover {
             border-color: var(--primary);
+            color: var(--primary);
         }
 
         .year-section {
-            margin-top: 10px;
-            padding: 12px;
+            margin-top: 12px;
+            padding: 16px;
             background: var(--bg);
-            border-radius: 8px;
+            border-radius: 14px;
         }
 
         .year-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: 14px;
         }
 
         .year-header h4 {
-            font-size: 0.95rem;
+            font-size: 1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .year-header h4::before {
+            content: '📅';
         }
 
         .months-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
             gap: 8px;
         }
 
         .month-btn {
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
+            padding: 12px 8px;
+            border-radius: 12px;
+            border: 1.5px solid var(--border);
             background: var(--card);
             cursor: pointer;
             text-align: center;
             font-size: 0.85rem;
-            font-weight: 500;
-            transition: all 0.2s;
+            font-weight: 600;
+            transition: all 0.25s;
         }
 
         .month-btn:hover {
             border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
         }
 
         .month-btn.checked {
-            background: #d4edda;
+            background: linear-gradient(135deg, #28a745, #20c997);
             border-color: #28a745;
-            color: #155724;
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(40,167,69,0.3);
         }
 
         .month-btn.checked::after {
@@ -134,25 +179,39 @@
         .add-year-form {
             display: flex;
             gap: 8px;
-            margin-top: 10px;
+            margin-top: 14px;
         }
 
         .add-year-form input {
-            padding: 6px 10px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
+            padding: 8px 12px;
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
             width: 100px;
             font-size: 0.85rem;
+            font-family: inherit;
+            background: var(--card);
+        }
+
+        .add-year-form input:focus {
+            outline: none;
+            border-color: var(--primary);
         }
 
         .add-year-form button {
-            padding: 6px 12px;
-            border-radius: 6px;
+            padding: 8px 16px;
+            border-radius: 10px;
             border: none;
-            background: var(--primary);
+            background: var(--gradient);
             color: #fff;
             cursor: pointer;
             font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .add-year-form button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(230,57,70,0.25);
         }
 
         .user-detail {
@@ -161,31 +220,42 @@
 
         .user-detail.open {
             display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .stats {
             display: flex;
             gap: 16px;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
 
         .stat-card {
             background: var(--card);
-            border: 1px solid var(--border);
+            border: 1.5px solid var(--border);
             border-radius: var(--radius);
-            padding: 16px 24px;
+            padding: 20px 32px;
             text-align: center;
+            box-shadow: var(--shadow);
         }
 
         .stat-card .num {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--primary);
+            font-size: 2rem;
+            font-weight: 800;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .stat-card .label {
-            font-size: 0.8rem;
+            font-size: 0.85rem;
             color: var(--text-light);
+            font-weight: 500;
         }
     </style>
 </head>

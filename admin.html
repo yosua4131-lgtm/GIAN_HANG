@@ -40,7 +40,19 @@
                 <input type="hidden" id="editId">
                 <input type="text" id="pName" placeholder="Tên món" required>
                 <input type="number" id="pPrice" placeholder="Giá (VNĐ)" required>
-                <input type="text" id="pImage" placeholder="Link ảnh (tùy chọn)">
+                <div class="image-upload-group">
+                    <label>Ảnh sản phẩm:</label>
+                    <div class="image-options">
+                        <div class="upload-area" id="uploadArea" onclick="document.getElementById('pFile').click()">
+                            <input type="file" id="pFile" accept="image/*" onchange="handleFileUpload(event)" style="display:none">
+                            <div id="uploadPreview" class="upload-preview">
+                                <span>📷 Bấm để chọn ảnh</span>
+                            </div>
+                        </div>
+                        <div class="or-divider">hoặc</div>
+                        <input type="text" id="pImage" placeholder="Dán link ảnh URL">
+                    </div>
+                </div>
                 <textarea id="pDesc" placeholder="Mô tả ngắn"></textarea>
                 <div class="form-actions">
                     <button class="btn-primary" onclick="saveProduct()">Lưu</button>
@@ -89,15 +101,55 @@
         }
 
         // === PRODUCTS ===
+        let uploadedImageData = '';
+
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const maxSize = 400;
+                    let w = img.width, h = img.height;
+                    if (w > h) { if (w > maxSize) { h = h * maxSize / w; w = maxSize; } }
+                    else { if (h > maxSize) { w = w * maxSize / h; h = maxSize; } }
+                    canvas.width = w;
+                    canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    uploadedImageData = canvas.toDataURL('image/jpeg', 0.7);
+                    document.getElementById('uploadPreview').innerHTML = '<img src="' + uploadedImageData + '">';
+                    document.getElementById('pImage').value = '';
+                };
+                img.src = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function resetUploadPreview() {
+            uploadedImageData = '';
+            document.getElementById('uploadPreview').innerHTML = '<span>📷 Bấm để chọn ảnh</span>';
+            document.getElementById('pFile').value = '';
+        }
+
         function openProductForm(id, data) {
             document.getElementById('productForm').classList.remove('hidden');
+            resetUploadPreview();
             if (id && data) {
                 document.getElementById('formTitle').textContent = 'Sửa món';
                 document.getElementById('editId').value = id;
                 document.getElementById('pName').value = data.name;
                 document.getElementById('pPrice').value = data.price;
-                document.getElementById('pImage').value = data.image || '';
                 document.getElementById('pDesc').value = data.description || '';
+                if (data.image && data.image.startsWith('data:')) {
+                    uploadedImageData = data.image;
+                    document.getElementById('uploadPreview').innerHTML = '<img src="' + data.image + '">';
+                    document.getElementById('pImage').value = '';
+                } else {
+                    document.getElementById('pImage').value = data.image || '';
+                }
             } else {
                 document.getElementById('formTitle').textContent = 'Thêm món mới';
                 document.getElementById('editId').value = '';
@@ -110,14 +162,16 @@
 
         function closeProductForm() {
             document.getElementById('productForm').classList.add('hidden');
+            resetUploadPreview();
         }
 
         async function saveProduct() {
             const id = document.getElementById('editId').value;
+            const imageUrl = uploadedImageData || document.getElementById('pImage').value.trim();
             const data = {
                 name: document.getElementById('pName').value.trim(),
                 price: parseInt(document.getElementById('pPrice').value),
-                image: document.getElementById('pImage').value.trim(),
+                image: imageUrl,
                 description: document.getElementById('pDesc').value.trim(),
                 active: true,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
