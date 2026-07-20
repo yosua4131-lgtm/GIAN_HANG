@@ -1014,7 +1014,7 @@
         ltimer = setTimeout(() => ltaps = 0, 2000);
         if (ltaps >= 5) {
             const b = document.getElementById('adminBtn');
-            b.style.display = b.style.display === 'none' ? '' : 'none';
+            b.style.display = b.style.display === 'inline-block' ? 'none' : 'inline-block';
             ltaps = 0;
         }
     });
