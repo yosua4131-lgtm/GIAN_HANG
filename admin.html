@@ -222,7 +222,10 @@
         <!-- Tab: Notifications -->
         <section id="tab-notifications" class="tab-content">
             <h2>Thông báo</h2>
-            <button class="btn-secondary" onclick="clearNotifications()">Đánh dấu đã đọc tất cả</button>
+            <div style="display:flex;gap:8px;margin-bottom:8px">
+                <button class="btn-secondary" onclick="clearNotifications()">Đánh dấu đã đọc tất cả</button>
+                <button class="btn-danger" onclick="deleteAllNotifications()">Xóa tất cả thông báo</button>
+            </div>
             <div id="notifList" class="notif-list">
                 <p class="loading">Đang tải...</p>
             </div>
@@ -707,6 +710,16 @@
             const snapshot = await db.collection('notifications').where('read', '==', false).get();
             const batch = db.batch();
             snapshot.forEach(doc => batch.update(doc.ref, { read: true }));
+            await batch.commit();
+            loadNotifications();
+            checkNotifications();
+        }
+
+        async function deleteAllNotifications() {
+            if (!confirm('Xóa tất cả thông báo?')) return;
+            const snapshot = await db.collection('notifications').get();
+            const batch = db.batch();
+            snapshot.forEach(doc => batch.delete(doc.ref));
             await batch.commit();
             loadNotifications();
             checkNotifications();
