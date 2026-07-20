@@ -407,8 +407,9 @@
 <body>
     <header class="header">
         <div class="container">
-            <h1 class="logo">🍜 Quán Bán Hàng</h1>
+            <h1 class="logo" id="logoBtn">🍜 Quán Bán Hàng</h1>
             <div class="header-right">
+                <a href="admin.html" class="btn-admin" id="adminBtn" style="display:none">Admin</a>
                 <button class="cart-icon-btn" id="cartIconBtn" onclick="openCart()">
                     <svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0"/></svg>
                     <span class="cart-badge" id="cartBadge">0</span>
@@ -689,6 +690,19 @@
         function formatPrice(n) {
             return n.toLocaleString('vi-VN') + 'd';
         }
+
+        let logoTaps = 0;
+        let logoTimer;
+        document.getElementById('logoBtn').addEventListener('click', function() {
+            logoTaps++;
+            clearTimeout(logoTimer);
+            logoTimer = setTimeout(() => logoTaps = 0, 2000);
+            if (logoTaps >= 5) {
+                const btn = document.getElementById('adminBtn');
+                btn.style.display = btn.style.display === 'none' ? '' : 'none';
+                logoTaps = 0;
+            }
+        });
 
         loadMenu();
     </script>
