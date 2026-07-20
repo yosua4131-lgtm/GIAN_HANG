@@ -906,17 +906,20 @@
         grid.innerHTML = html;
     }
 
+    let catNavClickedId = null;
     function scrollToCat(id) {
         const el = document.getElementById('cat-' + id);
         if (!el) return;
-        const offset = 120;
-        window.scrollTo({ top: el.offsetTop - offset, behavior: 'smooth' });
+        catNavClickedId = id;
         document.querySelectorAll('.cat-nav-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.cat-nav-btn').forEach(b => {
             if (b.getAttribute('onclick').includes(id)) b.classList.add('active');
         });
+        const offset = 120;
+        window.scrollTo({ top: el.offsetTop - offset, behavior: 'smooth' });
     }
     window.addEventListener('scroll', function() {
+        if (catNavClickedId) return;
         const labels = document.querySelectorAll('.cat-label[id]');
         const btns = document.querySelectorAll('.cat-nav-btn');
         if (!labels.length) return;
@@ -926,6 +929,8 @@
         });
         btns.forEach((b, i) => b.classList.toggle('active', i === activeIdx));
     });
+    window.addEventListener('touchstart', function() { catNavClickedId = null; });
+    window.addEventListener('wheel', function() { catNavClickedId = null; });
 
     function cardHTML(item) {
         const img = (item.images && item.images[0]) || item.image || '';
