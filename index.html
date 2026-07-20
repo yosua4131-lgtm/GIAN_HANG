@@ -399,8 +399,8 @@
         /* === FLY TO CART === */
         .fly-item {
             position: fixed;
-            width: 40px;
-            height: 40px;
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
             background: var(--gradient);
             z-index: 9999;
@@ -409,13 +409,16 @@
             align-items: center;
             justify-content: center;
             color: #fff;
-            font-size: 1.1rem;
-            box-shadow: 0 4px 15px rgba(230,57,70,0.5);
-            transition: all 0.65s cubic-bezier(0.2, 1, 0.3, 1);
+            font-size: 1.2rem;
+            box-shadow: 0 6px 20px rgba(230,57,70,0.5);
+            transition: left 1.2s cubic-bezier(0.5, 0, 0.3, 1),
+                        top 1.2s cubic-bezier(0.2, -0.3, 0.3, 1),
+                        transform 1.2s ease-in,
+                        opacity 0.4s ease 0.8s;
             opacity: 1;
         }
         .fly-item.fly {
-            transform: scale(0.3);
+            transform: scale(0.25);
             opacity: 0;
         }
 
@@ -650,7 +653,7 @@
                 cartEl.classList.remove('bounce');
                 void cartEl.offsetWidth;
                 cartEl.classList.add('bounce');
-            }, 650);
+            }, 1200);
         }
 
         function removeFromCart(id) {
