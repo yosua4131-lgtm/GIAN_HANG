@@ -190,6 +190,36 @@
         }
 
         /* === MENU === */
+        .cat-nav {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 0 0 10px;
+            margin-bottom: 6px;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        .cat-nav::-webkit-scrollbar { display: none; }
+        .cat-nav-btn {
+            flex-shrink: 0;
+            padding: 7px 16px;
+            border-radius: 20px;
+            border: 1.5px solid var(--line);
+            background: var(--surface);
+            color: var(--ink);
+            font-family: inherit;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .2s;
+            white-space: nowrap;
+        }
+        .cat-nav-btn.active,
+        .cat-nav-btn:active {
+            background: var(--orange);
+            color: #fff;
+            border-color: var(--orange);
+        }
         .menu-section { padding: 16px 0 40px; }
         .menu-heading {
             font-size: 1rem;
@@ -798,6 +828,7 @@
 <main class="main">
     <section class="menu-section">
         <h1 class="menu-heading">Menu</h1>
+        <div class="cat-nav" id="catNav"></div>
         <div id="menuGrid"><p class="empty">Đang tải...</p></div>
     </section>
 </main>
@@ -844,17 +875,20 @@
         }
 
         let html = '';
+        let navHtml = '';
         if (allCategories.length > 0) {
             allCategories.forEach(cat => {
                 const prods = allProducts.filter(p => p.categoryId === cat.id);
                 if (prods.length === 0) return;
-                html += '<div class="cat-label">' + cat.name + '</div><div class="menu-grid">';
+                navHtml += '<button class="cat-nav-btn" onclick="scrollToCat(\'' + cat.id + '\')">' + cat.name + '</button>';
+                html += '<div class="cat-label" id="cat-' + cat.id + '">' + cat.name + '</div><div class="menu-grid">';
                 prods.forEach(item => { html += cardHTML(item); });
                 html += '</div>';
             });
             const rest = allProducts.filter(p => !p.categoryId || !allCategories.find(c => c.id === p.categoryId));
             if (rest.length > 0) {
-                html += '<div class="cat-label">Khac</div><div class="menu-grid">';
+                navHtml += '<button class="cat-nav-btn" onclick="scrollToCat(\'other\')">Khác</button>';
+                html += '<div class="cat-label" id="cat-other">Khác</div><div class="menu-grid">';
                 rest.forEach(item => { html += cardHTML(item); });
                 html += '</div>';
             }
@@ -863,7 +897,17 @@
             allProducts.forEach(item => { html += cardHTML(item); });
             html += '</div>';
         }
+        document.getElementById('catNav').innerHTML = navHtml;
         grid.innerHTML = html;
+    }
+
+    function scrollToCat(id) {
+        const el = document.getElementById('cat-' + id);
+        if (!el) return;
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document.querySelectorAll('.cat-nav-btn').forEach(b => b.classList.remove('active'));
+        const btns = document.querySelectorAll('.cat-nav-btn');
+        btns.forEach(b => { if (b.onclick && b.getAttribute('onclick').includes(id)) b.classList.add('active'); });
     }
 
     function cardHTML(item) {
