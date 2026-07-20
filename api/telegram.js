@@ -1,17 +1,16 @@
-const admin = require('firebase-admin');
+const { initializeApp, cert, getApps } = require('firebase-admin/app');
+const { getFirestore } = require('firebase-admin/firestore');
 
-try {
-    admin.app();
-} catch (e) {
-    admin.initializeApp({
-        credential: admin.credential.cert({
+if (!getApps().length) {
+    initializeApp({
+        credential: cert({
             projectId: process.env.FIREBASE_PROJECT_ID,
             clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
             privateKey: (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n')
         })
     });
 }
-const db = admin.firestore();
+const db = getFirestore();
 
 const STATUS = {
     pending: 'Chờ xác nhận',
@@ -38,8 +37,8 @@ function buildKeyboard(orderId, currentStatus) {
 }
 
 function buildOrderText(order, status) {
-    const items = order.items.map(i => '• ' + i.name + ' x' + i.qty + ' — ' + fmtPrice(i.price * i.qty) + 'đ').join('\n');
-    const pay = order.payMethod === 'transfer' ? 'Chuyển khoản' : 'Tiền mặt';
+    var items = order.items.map(function(i) { return '• ' + i.name + ' x' + i.qty + ' — ' + fmtPrice(i.price * i.qty) + 'đ'; }).join('\n');
+    var pay = order.payMethod === 'transfer' ? 'Chuyển khoản' : 'Tiền mặt';
     return '🛒 ĐƠN HÀNG MỚI!\n\n'
         + '👤 ' + order.customer + '\n'
         + (order.phone ? '📞 ' + order.phone + '\n' : '')
