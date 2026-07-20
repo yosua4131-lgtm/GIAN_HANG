@@ -785,6 +785,98 @@
             border-top: 1px solid var(--line);
         }
 
+        /* === ORDER LOOKUP === */
+        .order-lookup-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+        }
+        .order-lookup-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: none;
+            stroke: #fff;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .lookup-sheet {
+            background: var(--surface);
+            border-radius: var(--radius-l) var(--radius-l) 0 0;
+            width: 100%;
+            max-width: 480px;
+            max-height: 85vh;
+            overflow-y: auto;
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 24px 20px 28px;
+            animation: sheetUp 300ms cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: var(--shadow-modal);
+        }
+        .lookup-input-row {
+            display: flex;
+            gap: 8px;
+            margin: 16px 0;
+        }
+        .lookup-input-row input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1.5px solid var(--line);
+            border-radius: var(--radius-s);
+            font-family: inherit;
+            font-size: 0.92rem;
+        }
+        .lookup-input-row button {
+            padding: 10px 18px;
+            background: var(--orange);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-s);
+            font-family: inherit;
+            font-weight: 700;
+            font-size: 0.88rem;
+            cursor: pointer;
+        }
+        .order-result {
+            background: var(--bg);
+            border-radius: var(--radius-s);
+            padding: 14px 16px;
+            margin-bottom: 10px;
+        }
+        .order-result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .order-result-header strong { font-size: 0.92rem; }
+        .order-result-time { font-size: 0.75rem; color: var(--ink-2); }
+        .order-result-items { font-size: 0.85rem; color: var(--ink-2); margin-bottom: 8px; }
+        .order-result-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .order-result-total { font-weight: 800; color: var(--orange); font-size: 0.95rem; }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+        .status-pending { background: #fff3cd; color: #856404; }
+        .status-confirmed { background: #d1ecf1; color: #0c5460; }
+        .status-preparing { background: #ffe0b2; color: #e65100; }
+        .status-delivering { background: #c8e6c9; color: #2e7d32; }
+        .status-done { background: #d4edda; color: #155724; }
+        .status-cancelled { background: #f8d7da; color: #721c24; }
+
         /* === REDUCED MOTION === */
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after {
@@ -812,6 +904,9 @@
         <div class="logo" id="logoBtn">Quán <span>Bán Hàng</span></div>
         <div class="header-actions">
             <a href="admin.html" class="btn-admin" id="adminBtn">Admin</a>
+            <button class="order-lookup-btn" onclick="openLookup()" title="Tra cứu đơn hàng">
+                <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
+            </button>
             <button class="cart-btn" id="cartBtn" onclick="openCart()">
                 <svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 01-8 0"/></svg>
                 <span class="cart-badge" id="cartBadge">0</span>
@@ -843,6 +938,7 @@
 <div class="toast" id="toast"></div>
 <div id="productModal" class="overlay hidden"></div>
 <div id="cartModal" class="overlay hidden"></div>
+<div id="lookupModal" class="overlay hidden"></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -988,7 +1084,7 @@
         const ex = cart.find(c => c.id === id);
         if (ex) ex.qty++; else cart.push({id, name, price, qty:1});
         updateCart();
-        showToast(name);
+        showToast('Đã thêm ' + name);
         flyToCart(e);
     }
     function removeFromCart(id) { cart = cart.filter(c => c.id !== id); updateCart(); }
@@ -1099,12 +1195,12 @@
 
     // === TOAST ===
     let toastT;
-    function showToast(name) {
+    function showToast(msg, duration) {
         const t = document.getElementById('toast');
-        t.textContent = 'Da them ' + name;
+        t.textContent = msg;
         t.classList.add('show');
         clearTimeout(toastT);
-        toastT = setTimeout(() => t.classList.remove('show'), 2000);
+        toastT = setTimeout(() => t.classList.remove('show'), duration || 2000);
     }
 
     let transferConfirmed = false;
@@ -1185,7 +1281,7 @@
             status: 'pending',
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         };
-        await db.collection('orders').add(order);
+        const docRef = await db.collection('orders').add(order);
         await db.collection('notifications').add({
             type: 'new_order',
             message: 'Đơn mới từ ' + order.customer + ' - ' + fmtPrice(order.total),
@@ -1195,10 +1291,64 @@
         cart = [];
         updateCart();
         closeCart();
-        showToast('Đặt hàng thành công!');
+        const shortId = docRef.id.slice(-6).toUpperCase();
+        showToast('Đặt hàng thành công! Mã đơn: ' + shortId, 5000);
     }
 
     function fmtPrice(n) { return n.toLocaleString('vi-VN'); }
+
+    // === ORDER LOOKUP ===
+    const statusLabels = {
+        pending: 'Chờ xác nhận',
+        confirmed: 'Đã xác nhận',
+        preparing: 'Đang chuẩn bị',
+        delivering: 'Đang giao',
+        done: 'Hoàn thành',
+        cancelled: 'Đã hủy'
+    };
+    function openLookup() {
+        const m = document.getElementById('lookupModal');
+        m.innerHTML = '<div class="lookup-sheet">'
+            + '<div class="cart-header"><h3>Tra cứu đơn hàng</h3><button class="cart-close" onclick="closeLookup()">&times;</button></div>'
+            + '<div class="lookup-input-row"><input type="text" id="lookupPhone" placeholder="Nhập số điện thoại..."><button onclick="searchOrders()">Tìm</button></div>'
+            + '<div id="lookupResults"><p style="color:var(--ink-2);font-size:0.85rem;text-align:center;padding:20px 0">Nhập số điện thoại để xem đơn hàng</p></div>'
+            + '</div>';
+        m.classList.remove('hidden');
+        m.onclick = function(ev) { if (ev.target === m) closeLookup(); };
+        setTimeout(() => document.getElementById('lookupPhone').focus(), 100);
+    }
+    function closeLookup() {
+        document.getElementById('lookupModal').classList.add('hidden');
+    }
+    async function searchOrders() {
+        const phone = document.getElementById('lookupPhone').value.trim();
+        const results = document.getElementById('lookupResults');
+        if (!phone) { results.innerHTML = '<p style="color:var(--ink-2);font-size:0.85rem;text-align:center;padding:20px 0">Vui lòng nhập số điện thoại</p>'; return; }
+        results.innerHTML = '<p style="text-align:center;padding:20px 0">Đang tìm...</p>';
+        try {
+            const snap = await db.collection('orders').where('phone', '==', phone).get();
+            if (snap.empty) { results.innerHTML = '<p style="color:var(--ink-2);font-size:0.85rem;text-align:center;padding:20px 0">Không tìm thấy đơn hàng nào</p>'; return; }
+            const orders = [];
+            snap.forEach(doc => orders.push({ id: doc.id, ...doc.data() }));
+            orders.sort((a, b) => (b.createdAt?.toDate?.() || 0) - (a.createdAt?.toDate?.() || 0));
+            let html = '';
+            orders.forEach(d => {
+                const shortId = d.id.slice(-6).toUpperCase();
+                const time = d.createdAt ? new Date(d.createdAt.toDate()).toLocaleString('vi-VN') : '';
+                const items = d.items.map(i => i.name + ' x' + i.qty).join(', ');
+                const st = d.status || 'pending';
+                html += '<div class="order-result">'
+                    + '<div class="order-result-header"><strong>#' + shortId + '</strong><span class="order-result-time">' + time + '</span></div>'
+                    + '<div class="order-result-items">' + items + '</div>'
+                    + '<div class="order-result-footer"><span class="order-result-total">' + fmtPrice(d.total) + 'đ</span>'
+                    + '<span class="status-badge status-' + st + '">' + (statusLabels[st] || st) + '</span>'
+                    + '</div></div>';
+            });
+            results.innerHTML = html;
+        } catch(err) {
+            results.innerHTML = '<p style="color:red;font-size:0.85rem;text-align:center;padding:20px 0">Lỗi: ' + err.message + '</p>';
+        }
+    }
 
     // === SECRET ADMIN ===
     let ltaps = 0, ltimer;
