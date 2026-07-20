@@ -928,16 +928,30 @@
     function removeFromCart(id) { cart = cart.filter(c => c.id !== id); updateCart(); }
     function changeQty(id, d) {
         const item = cart.find(c => c.id === id);
-        if (item) { item.qty += d; if (item.qty <= 0) cart = cart.filter(c => c.id !== id); }
-        updateCart();
-    }
-    function updateCart() {
-        const count = cart.reduce((s,c) => s+c.qty, 0);
+        if (!item) return;
+        item.qty += d;
+        if (item.qty <= 0) {
+            cart = cart.filter(c => c.id !== id);
+            updateCart();
+            return;
+        }
+        const qtyEl = document.getElementById('qty-' + id);
+        const priceEl = document.getElementById('price-' + id);
+        if (qtyEl) qtyEl.textContent = item.qty;
+        if (priceEl) priceEl.textContent = fmtPrice(item.price * item.qty);
         const total = cart.reduce((s,c) => s+c.price*c.qty, 0);
+        const totalEl = document.getElementById('cartTotal');
+        if (totalEl) totalEl.textContent = fmtPrice(total);
+        updateBadge();
+    }
+    function updateBadge() {
+        const count = cart.reduce((s,c) => s+c.qty, 0);
         const badge = document.getElementById('cartBadge');
         badge.textContent = count;
         badge.classList.toggle('show', count > 0);
-
+    }
+    function updateCart() {
+        updateBadge();
         const cm = document.getElementById('cartModal');
         if (cm.classList.contains('hidden')) return;
         renderCartContent();
@@ -959,11 +973,11 @@
         } else {
             cart.forEach(c => {
                 h += '<div class="cart-item"><span class="cart-item-name">' + c.name + '</span>'
-                    + '<div class="cart-qty"><button onclick="changeQty(\'' + c.id + '\',-1)">-</button><span>' + c.qty + '</span><button onclick="changeQty(\'' + c.id + '\',1)">+</button></div>'
-                    + '<span class="cart-item-price">' + fmtPrice(c.price*c.qty) + '</span>'
+                    + '<div class="cart-qty"><button onclick="changeQty(\'' + c.id + '\',-1)">-</button><span id="qty-' + c.id + '">' + c.qty + '</span><button onclick="changeQty(\'' + c.id + '\',1)">+</button></div>'
+                    + '<span class="cart-item-price" id="price-' + c.id + '">' + fmtPrice(c.price*c.qty) + '</span>'
                     + '<button class="cart-item-del" onclick="removeFromCart(\'' + c.id + '\')">&times;</button></div>';
             });
-            h += '<div class="cart-summary"><span>Tổng cộng</span><strong>' + fmtPrice(total) + '</strong></div>';
+            h += '<div class="cart-summary"><span>Tổng cộng</span><strong id="cartTotal">' + fmtPrice(total) + '</strong></div>';
         }
         let addrOpts = '<option value="">-- Chọn địa chỉ --</option>';
         allAddresses.forEach(a => { addrOpts += '<option value="' + a.name.replace(/"/g, '&quot;') + '">' + a.name + '</option>'; });
