@@ -774,7 +774,7 @@
 
 <header class="header">
     <div class="header-inner">
-        <div class="logo" id="logoBtn">Quan <span>Ban Hang</span></div>
+        <div class="logo" id="logoBtn">Quán <span>Bán Hàng</span></div>
         <div class="header-actions">
             <a href="admin.html" class="btn-admin" id="adminBtn">Admin</a>
             <button class="cart-btn" id="cartBtn" onclick="openCart()">
@@ -788,8 +788,8 @@
 <div class="hero">
     <div class="hero-inner">
         <div class="hero-text">
-            <h2>Giao hang tan noi</h2>
-            <p>Order ngay - Nhan lien tay</p>
+            <h2>Giao hàng tận nơi</h2>
+            <p>Order ngay - Nhận liền tay</p>
         </div>
         <div class="hero-emoji">🛵</div>
     </div>
@@ -798,11 +798,11 @@
 <main class="main">
     <section class="menu-section">
         <h1 class="menu-heading">Menu</h1>
-        <div id="menuGrid"><p class="empty">Dang tai...</p></div>
+        <div id="menuGrid"><p class="empty">Đang tải...</p></div>
     </section>
 </main>
 
-<div class="footer">&copy; 2026 Quan Ban Hang</div>
+<div class="footer">&copy; 2026 Quán Bán Hàng</div>
 
 <div class="toast" id="toast"></div>
 <div id="productModal" class="overlay hidden"></div>
@@ -839,7 +839,7 @@
         addrSnap.forEach(doc => allAddresses.push({ id: doc.id, ...doc.data() }));
 
         if (allProducts.length === 0) {
-            grid.innerHTML = '<p class="empty">Chua co mon nao</p>';
+            grid.innerHTML = '<p class="empty">Chưa có món nào</p>';
             return;
         }
 
@@ -877,7 +877,7 @@
             + '<div class="card-name">' + item.name + '</div>'
             + (item.description ? '<div class="card-desc">' + item.description + '</div>' : '')
             + '<div class="card-footer"><span class="card-price">' + fmtPrice(item.price) + '</span>'
-            + '<button class="btn-add" onclick="event.stopPropagation();addToCart(\'' + item.id + '\',\'' + item.name.replace(/'/g,"\\'") + '\',' + item.price + ',event)">Them</button>'
+            + '<button class="btn-add" onclick="event.stopPropagation();addToCart(\'' + item.id + '\',\'' + item.name.replace(/'/g,"\\'") + '\',' + item.price + ',event)">Thêm</button>'
             + '</div></div></div>';
     }
 
@@ -903,7 +903,7 @@
             + '<div class="pm-name">' + item.name + '</div>'
             + '<div class="pm-price">' + fmtPrice(item.price) + '</div>'
             + (item.description ? '<div class="pm-desc">' + item.description + '</div>' : '')
-            + '<button class="pm-add" onclick="addToCart(\'' + item.id + '\',\'' + item.name.replace(/'/g,"\\'") + '\',' + item.price + ',event);closePM()">Them vao gio hang</button>'
+            + '<button class="pm-add" onclick="addToCart(\'' + item.id + '\',\'' + item.name.replace(/'/g,"\\'") + '\',' + item.price + ',event);closePM()">Thêm vào giỏ hàng</button>'
             + '</div></div>';
         m.classList.remove('hidden');
         m.onclick = function(e) { if (e.target === m) closePM(); };
@@ -953,9 +953,9 @@
     function renderCartContent() {
         const total = cart.reduce((s,c) => s+c.price*c.qty, 0);
         const m = document.getElementById('cartModal');
-        let h = '<div class="cart-sheet"><div class="cart-header"><h3>Gio hang</h3><button class="cart-close" onclick="closeCart()">&times;</button></div>';
+        let h = '<div class="cart-sheet"><div class="cart-header"><h3>Giỏ hàng</h3><button class="cart-close" onclick="closeCart()">&times;</button></div>';
         if (cart.length === 0) {
-            h += '<p class="empty">Chua co mon nao</p>';
+            h += '<p class="empty">Chưa có món nào</p>';
         } else {
             cart.forEach(c => {
                 h += '<div class="cart-item"><span class="cart-item-name">' + c.name + '</span>'
@@ -963,25 +963,25 @@
                     + '<span class="cart-item-price">' + fmtPrice(c.price*c.qty) + '</span>'
                     + '<button class="cart-item-del" onclick="removeFromCart(\'' + c.id + '\')">&times;</button></div>';
             });
-            h += '<div class="cart-summary"><span>Tong cong</span><strong>' + fmtPrice(total) + '</strong></div>';
+            h += '<div class="cart-summary"><span>Tổng cộng</span><strong>' + fmtPrice(total) + '</strong></div>';
         }
-        let addrOpts = '<option value="">-- Chon dia chi --</option>';
+        let addrOpts = '<option value="">-- Chọn địa chỉ --</option>';
         allAddresses.forEach(a => { addrOpts += '<option value="' + a.name.replace(/"/g, '&quot;') + '">' + a.name + '</option>'; });
-        addrOpts += '<option value="__custom">Nhap dia chi khac...</option>';
+        addrOpts += '<option value="__custom">Nhập địa chỉ khác...</option>';
 
         h += '<form class="cart-form" onsubmit="submitOrder(event)">'
-            + '<input type="text" id="customerName" placeholder="Ten cua ban" required>'
-            + '<input type="text" id="customerPhone" placeholder="So dien thoai (tuy chon)">'
+            + '<input type="text" id="customerName" placeholder="Tên của bạn" required>'
+            + '<input type="text" id="customerPhone" placeholder="Số điện thoại (tùy chọn)">'
             + '<select id="customerAddrSelect" onchange="toggleCustomAddr()" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:var(--radius-s);font-family:inherit;font-size:0.88rem;background:var(--surface);margin-bottom:8px">' + addrOpts + '</select>'
-            + '<input type="text" id="customerAddrCustom" placeholder="Nhap dia chi cua ban..." style="display:none">'
+            + '<input type="text" id="customerAddrCustom" placeholder="Nhập địa chỉ của bạn..." style="display:none">'
             + '<div class="pay-methods">'
-            + '<div class="pay-opt active" onclick="selectPay(\'cash\',this)"><span>💵</span>Tien mat</div>'
-            + '<div class="pay-opt" onclick="selectPay(\'transfer\',this)"><span>📱</span>Chuyen khoan</div>'
+            + '<div class="pay-opt active" onclick="selectPay(\'cash\',this)"><span>💵</span>Tiền mặt</div>'
+            + '<div class="pay-opt" onclick="selectPay(\'transfer\',this)"><span>📱</span>Chuyển khoản</div>'
             + '</div>'
             + '<input type="hidden" id="payMethod" value="cash">'
             + '<div id="qrSection" style="display:none"></div>'
-            + '<textarea id="customerNote" placeholder="Ghi chu..."></textarea>'
-            + '<button type="submit" class="btn-submit" id="submitBtn">Dat hang</button></form></div>';
+            + '<textarea id="customerNote" placeholder="Ghi chú..."></textarea>'
+            + '<button type="submit" class="btn-submit" id="submitBtn">Đặt hàng</button></form></div>';
         m.innerHTML = h;
     }
 
@@ -1040,37 +1040,37 @@
             if (qrUrl) {
                 qrSec.style.display = 'block';
                 qrSec.innerHTML = '<div class="qr-box">'
-                    + '<p>Quet ma QR de chuyen khoan</p>'
+                    + '<p>Quét mã QR để chuyển khoản</p>'
                     + '<img src="' + qrUrl + '" alt="QR">'
-                    + '<button type="button" class="btn-confirmed" id="confirmTransferBtn" onclick="confirmTransfer()">Da chuyen khoan</button>'
+                    + '<button type="button" class="btn-confirmed" id="confirmTransferBtn" onclick="confirmTransfer()">Đã chuyển khoản</button>'
                     + '</div>';
                 btn.disabled = true;
                 btn.style.opacity = '0.5';
-                btn.textContent = 'Vui long xac nhan chuyen khoan';
+                btn.textContent = 'Vui lòng xác nhận chuyển khoản';
             } else {
                 qrSec.style.display = 'block';
-                qrSec.innerHTML = '<div class="qr-box"><p>Chua co ma QR. Lien he shop de chuyen khoan.</p></div>';
+                qrSec.innerHTML = '<div class="qr-box"><p>Chưa có mã QR. Liên hệ shop để chuyển khoản.</p></div>';
                 btn.disabled = false;
                 btn.style.opacity = '1';
-                btn.textContent = 'Dat hang';
+                btn.textContent = 'Đặt hàng';
             }
         } else {
             qrSec.style.display = 'none';
             btn.disabled = false;
             btn.style.opacity = '1';
-            btn.textContent = 'Dat hang';
+            btn.textContent = 'Đặt hàng';
         }
     }
 
     function confirmTransfer() {
         transferConfirmed = true;
         const cb = document.getElementById('confirmTransferBtn');
-        cb.textContent = '✓ Da xac nhan chuyen khoan';
+        cb.textContent = '✓ Đã xác nhận chuyển khoản';
         cb.classList.add('done');
         const btn = document.getElementById('submitBtn');
         btn.disabled = false;
         btn.style.opacity = '1';
-        btn.textContent = 'Dat hang';
+        btn.textContent = 'Đặt hàng';
     }
 
     function toggleCustomAddr() {
@@ -1108,14 +1108,14 @@
         await db.collection('orders').add(order);
         await db.collection('notifications').add({
             type: 'new_order',
-            message: 'Don moi tu ' + order.customer + ' - ' + fmtPrice(order.total),
+            message: 'Đơn mới từ ' + order.customer + ' - ' + fmtPrice(order.total),
             read: false,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         cart = [];
         updateCart();
         closeCart();
-        showToast('Dat hang thanh cong!');
+        showToast('Đặt hàng thành công!');
     }
 
     function fmtPrice(n) { return n.toLocaleString('vi-VN'); }
