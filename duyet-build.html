@@ -10,25 +10,119 @@
     <style>
         .build-section { padding: 28px 0; }
 
+        .folder-add-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: var(--card);
+            padding: 14px 18px;
+            border-radius: 14px;
+            border: 1.5px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+
+        .folder-add-form input {
+            flex: 1;
+            padding: 10px 16px;
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            background: var(--bg);
+            transition: all 0.2s;
+        }
+
+        .folder-add-form input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: #fff;
+        }
+
+        .folder-section {
+            margin-bottom: 16px;
+        }
+
+        .folder-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 18px;
+            background: var(--card);
+            border: 1.5px solid var(--border);
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .folder-header:hover {
+            border-color: var(--primary-light);
+            box-shadow: var(--shadow);
+        }
+
+        .folder-header h3 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .folder-header .folder-count {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            font-weight: 500;
+        }
+
+        .folder-header .folder-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .folder-header .folder-actions button {
+            padding: 5px 12px;
+            border-radius: 20px;
+            border: 1.5px solid var(--border);
+            background: var(--bg);
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .folder-header .folder-actions button:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .folder-body {
+            display: none;
+            padding: 12px 0 0 0;
+        }
+
+        .folder-body.open {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
         .user-form {
             display: flex;
             gap: 10px;
-            margin-bottom: 24px;
+            margin-bottom: 16px;
             flex-wrap: wrap;
             background: var(--card);
-            padding: 18px;
+            padding: 14px 18px;
             border-radius: var(--radius);
             box-shadow: var(--shadow);
             border: 1.5px solid var(--border);
         }
 
         .user-form input {
-            padding: 11px 16px;
+            padding: 10px 16px;
             border: 1.5px solid var(--border);
             border-radius: 12px;
             font-size: 0.9rem;
             flex: 1;
-            min-width: 150px;
+            min-width: 140px;
             background: var(--bg);
             font-family: inherit;
             transition: all 0.2s;
@@ -137,9 +231,7 @@
             gap: 6px;
         }
 
-        .year-header h4::before {
-            content: '📅';
-        }
+        .year-header h4::before { content: '📅'; }
 
         .months-grid {
             display: grid;
@@ -172,9 +264,7 @@
             box-shadow: 0 2px 8px rgba(40,167,69,0.3);
         }
 
-        .month-btn.checked::after {
-            content: ' ✓';
-        }
+        .month-btn.checked::after { content: ' ✓'; }
 
         .add-year-form {
             display: flex;
@@ -214,14 +304,8 @@
             box-shadow: 0 3px 10px rgba(230,57,70,0.25);
         }
 
-        .user-detail {
-            display: none;
-        }
-
-        .user-detail.open {
-            display: block;
-            animation: fadeIn 0.3s ease;
-        }
+        .user-detail { display: none; }
+        .user-detail.open { display: block; animation: fadeIn 0.3s ease; }
 
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(-5px); }
@@ -329,14 +413,8 @@
             color: var(--primary);
         }
 
-        .month-expanded {
-            display: none;
-        }
-
-        .month-expanded.open {
-            display: block;
-            animation: fadeIn 0.3s ease;
-        }
+        .month-expanded { display: none; }
+        .month-expanded.open { display: block; animation: fadeIn 0.3s ease; }
 
         .img-lightbox {
             position: fixed;
@@ -353,6 +431,18 @@
             max-width: 90%;
             max-height: 90%;
             border-radius: 12px;
+        }
+
+        .no-folder-users {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 2px dashed var(--border);
+        }
+
+        .no-folder-users h3 {
+            font-size: 1rem;
+            color: var(--text-light);
+            margin-bottom: 12px;
         }
     </style>
 </head>
@@ -373,22 +463,25 @@
                 <div class="num" id="totalUsers">0</div>
                 <div class="label">Người dùng</div>
             </div>
+            <div class="stat-card">
+                <div class="num" id="totalFolders">0</div>
+                <div class="label">Folder</div>
+            </div>
         </div>
 
-        <!-- Add user -->
-        <div class="user-form">
-            <input type="text" id="newUserName" placeholder="Tên người dùng">
-            <input type="text" id="newUserPhone" placeholder="SĐT (tùy chọn)">
-            <button class="btn-primary" onclick="addUser()">+ Thêm</button>
+        <!-- Add folder -->
+        <div class="folder-add-form">
+            <input type="text" id="newFolderName" placeholder="Tên folder mới...">
+            <button class="btn-primary" onclick="addFolder()">+ Thêm folder</button>
         </div>
 
         <!-- Search -->
         <div class="search-box">
-            <input type="text" id="searchUser" placeholder="🔍 Tìm người dùng..." oninput="renderUsers()">
+            <input type="text" id="searchUser" placeholder="🔍 Tìm người dùng..." oninput="renderAll()">
         </div>
 
-        <!-- User list -->
-        <div id="userList" class="user-list">
+        <!-- Content -->
+        <div id="mainContent">
             <p class="loading">Đang tải...</p>
         </div>
     </main>
@@ -399,7 +492,9 @@
     <script>
         const db = firebase.firestore();
         const R2_URL = 'https://gian-hang-r2.yosua-4131.workers.dev';
+        let allFolders = [];
         let allUsers = [];
+        let openFolders = new Set();
         let openDetails = new Set();
         let openMonths = new Set();
 
@@ -433,6 +528,60 @@
             return data.url || (R2_URL + '/' + path);
         }
 
+        // === FOLDERS ===
+        async function loadFolders() {
+            const snapshot = await db.collection('buildFolders').orderBy('name').get();
+            allFolders = [];
+            snapshot.forEach(doc => {
+                allFolders.push({ id: doc.id, ...doc.data() });
+            });
+            document.getElementById('totalFolders').textContent = allFolders.length;
+        }
+
+        async function addFolder() {
+            const input = document.getElementById('newFolderName');
+            const name = input.value.trim();
+            if (!name) return alert('Nhập tên folder!');
+            const ref = await db.collection('buildFolders').add({
+                name,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            input.value = '';
+            allFolders.push({ id: ref.id, name });
+            document.getElementById('totalFolders').textContent = allFolders.length;
+            openFolders.add(ref.id);
+            renderAll();
+        }
+
+        async function renameFolder(id) {
+            const folder = allFolders.find(f => f.id === id);
+            const name = prompt('Đổi tên folder:', folder ? folder.name : '');
+            if (!name || !name.trim()) return;
+            await db.collection('buildFolders').doc(id).update({ name: name.trim() });
+            folder.name = name.trim();
+            renderAll();
+        }
+
+        async function deleteFolder(id) {
+            if (!confirm('Xóa folder này? Người dùng bên trong sẽ chuyển ra ngoài.')) return;
+            const users = allUsers.filter(u => u.folderId === id);
+            const batch = db.batch();
+            users.forEach(u => batch.update(db.collection('buildUsers').doc(u.id), { folderId: '' }));
+            batch.delete(db.collection('buildFolders').doc(id));
+            await batch.commit();
+            allFolders = allFolders.filter(f => f.id !== id);
+            users.forEach(u => u.folderId = '');
+            document.getElementById('totalFolders').textContent = allFolders.length;
+            renderAll();
+        }
+
+        function toggleFolder(id) {
+            if (openFolders.has(id)) openFolders.delete(id);
+            else openFolders.add(id);
+            renderAll();
+        }
+
+        // === USERS ===
         async function loadUsers() {
             const snapshot = await db.collection('buildUsers').orderBy('name').get();
             allUsers = [];
@@ -440,38 +589,50 @@
                 allUsers.push({ id: doc.id, ...doc.data() });
             });
             document.getElementById('totalUsers').textContent = allUsers.length;
-            renderUsers();
         }
 
-        function renderUsers() {
-            const query = document.getElementById('searchUser').value.toLowerCase();
-            const filtered = query
-                ? allUsers.filter(u => u.name.toLowerCase().includes(query) || (u.phone && u.phone.includes(query)))
-                : allUsers;
+        async function addUser(folderId) {
+            const nameEl = document.getElementById('newUserName-' + folderId);
+            const phoneEl = document.getElementById('newUserPhone-' + folderId);
+            const name = nameEl.value.trim();
+            const phone = phoneEl.value.trim();
+            if (!name) return alert('Nhập tên!');
 
-            const list = document.getElementById('userList');
-            if (filtered.length === 0) {
-                list.innerHTML = '<p class="empty">Không tìm thấy</p>';
-                return;
-            }
+            const ref = await db.collection('buildUsers').add({
+                name,
+                phone,
+                folderId: folderId || '',
+                years: {},
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
 
-            list.innerHTML = filtered.map(u => `
-                <div class="user-card">
-                    <div class="user-header">
-                        <h3 onclick="toggleDetail('${u.id}')">${u.name} ${u.phone ? '(' + u.phone + ')' : ''}</h3>
-                        <div class="user-actions">
-                            <button onclick="deleteUser('${u.id}')">Xóa</button>
-                        </div>
-                    </div>
-                    <div class="user-detail ${openDetails.has(u.id) ? 'open' : ''}" id="detail-${u.id}">
-                        ${renderYears(u)}
-                        <div class="add-year-form">
-                            <input type="number" id="yearInput-${u.id}" placeholder="Năm" value="${new Date().getFullYear()}">
-                            <button onclick="addYear('${u.id}')">+ Thêm năm</button>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
+            nameEl.value = '';
+            phoneEl.value = '';
+            allUsers.push({ id: ref.id, name, phone, folderId: folderId || '', years: {} });
+            document.getElementById('totalUsers').textContent = allUsers.length;
+            if (folderId) openFolders.add(folderId);
+            renderAll();
+        }
+
+        async function deleteUser(id) {
+            if (!confirm('Xóa người dùng này?')) return;
+            await db.collection('buildUsers').doc(id).delete();
+            allUsers = allUsers.filter(u => u.id !== id);
+            document.getElementById('totalUsers').textContent = allUsers.length;
+            renderAll();
+        }
+
+        function toggleDetail(id) {
+            if (openDetails.has(id)) openDetails.delete(id);
+            else openDetails.add(id);
+            renderAll();
+        }
+
+        function toggleMonthExpand(userId, year, month) {
+            const key = userId + '-' + year + '-' + month;
+            if (openMonths.has(key)) openMonths.delete(key);
+            else openMonths.add(key);
+            renderAll();
         }
 
         function getMonthData(user, year, month) {
@@ -481,76 +642,130 @@
             return { checked: false, images: [] };
         }
 
+        // === RENDER ===
+        function renderAll() {
+            const query = document.getElementById('searchUser').value.toLowerCase();
+            const container = document.getElementById('mainContent');
+            let html = '';
+
+            allFolders.forEach(folder => {
+                let users = allUsers.filter(u => u.folderId === folder.id);
+                if (query) users = users.filter(u => u.name.toLowerCase().includes(query) || (u.phone && u.phone.includes(query)));
+
+                const isOpen = openFolders.has(folder.id);
+                const totalInFolder = allUsers.filter(u => u.folderId === folder.id).length;
+
+                html += '<div class="folder-section">';
+                html += '<div class="folder-header" onclick="toggleFolder(\'' + folder.id + '\')">';
+                html += '<h3>' + (isOpen ? '📂' : '📁') + ' ' + folder.name + ' <span class="folder-count">(' + totalInFolder + ' người)</span></h3>';
+                html += '<div class="folder-actions">';
+                html += '<button onclick="event.stopPropagation(); renameFolder(\'' + folder.id + '\')">Sửa tên</button>';
+                html += '<button onclick="event.stopPropagation(); deleteFolder(\'' + folder.id + '\')">Xóa</button>';
+                html += '</div></div>';
+
+                html += '<div class="folder-body ' + (isOpen ? 'open' : '') + '">';
+                html += '<div class="user-form">';
+                html += '<input type="text" id="newUserName-' + folder.id + '" placeholder="Tên người dùng">';
+                html += '<input type="text" id="newUserPhone-' + folder.id + '" placeholder="SĐT (tùy chọn)">';
+                html += '<button class="btn-primary" onclick="addUser(\'' + folder.id + '\')">+ Thêm</button>';
+                html += '</div>';
+
+                if (users.length === 0) {
+                    html += '<p style="padding:14px;color:var(--text-light);font-size:0.9rem">' + (query ? 'Không tìm thấy' : 'Chưa có người dùng') + '</p>';
+                } else {
+                    html += '<div class="user-list">';
+                    users.forEach(u => { html += renderUserCard(u); });
+                    html += '</div>';
+                }
+                html += '</div></div>';
+            });
+
+            let uncategorized = allUsers.filter(u => !u.folderId || !allFolders.find(f => f.id === u.folderId));
+            if (query) uncategorized = uncategorized.filter(u => u.name.toLowerCase().includes(query) || (u.phone && u.phone.includes(query)));
+
+            if (uncategorized.length > 0 || allFolders.length === 0) {
+                html += '<div class="no-folder-users">';
+                if (allFolders.length > 0) html += '<h3>📋 Chưa có folder</h3>';
+
+                html += '<div class="user-form">';
+                html += '<input type="text" id="newUserName-none" placeholder="Tên người dùng">';
+                html += '<input type="text" id="newUserPhone-none" placeholder="SĐT (tùy chọn)">';
+                html += '<button class="btn-primary" onclick="addUser(\'\')">+ Thêm</button>';
+                html += '</div>';
+
+                if (uncategorized.length === 0) {
+                    html += '<p style="padding:14px;color:var(--text-light);font-size:0.9rem">Chưa có người dùng</p>';
+                } else {
+                    html += '<div class="user-list">';
+                    uncategorized.forEach(u => { html += renderUserCard(u); });
+                    html += '</div>';
+                }
+                html += '</div>';
+            }
+
+            container.innerHTML = html;
+        }
+
+        function renderUserCard(u) {
+            return '<div class="user-card">'
+                + '<div class="user-header">'
+                + '<h3 onclick="toggleDetail(\'' + u.id + '\')">' + u.name + (u.phone ? ' (' + u.phone + ')' : '') + '</h3>'
+                + '<div class="user-actions"><button onclick="deleteUser(\'' + u.id + '\')">Xóa</button></div>'
+                + '</div>'
+                + '<div class="user-detail ' + (openDetails.has(u.id) ? 'open' : '') + '" id="detail-' + u.id + '">'
+                + renderYears(u)
+                + '<div class="add-year-form">'
+                + '<input type="number" id="yearInput-' + u.id + '" placeholder="Năm" value="' + new Date().getFullYear() + '">'
+                + '<button onclick="addYear(\'' + u.id + '\')">+ Thêm năm</button>'
+                + '</div>'
+                + '</div></div>';
+        }
+
         function renderYears(user) {
             const years = user.years || {};
             const sortedYears = Object.keys(years).sort((a, b) => b - a);
 
             if (sortedYears.length === 0) return '<p style="font-size:0.85rem;color:var(--text-light)">Chưa có năm nào</p>';
 
-            return sortedYears.map(year => `
-                <div class="year-section">
-                    <div class="year-header">
-                        <h4>Năm ${year}</h4>
-                        <button class="btn-danger" onclick="deleteYear('${user.id}', '${year}')" style="font-size:0.8rem;cursor:pointer">Xóa năm</button>
-                    </div>
-                    <div class="months-grid">
-                        ${[1,2,3,4,5,6,7,8,9,10,11,12].map(m => {
-                            const md = getMonthData(user, year, m);
-                            const imgCount = md.images ? md.images.length : 0;
-                            return `
-                            <div class="month-btn ${md.checked ? 'checked' : ''}" onclick="toggleMonthExpand('${user.id}', '${year}', ${m})">
-                                T${m}${imgCount > 0 ? ' ('+imgCount+'📷)' : ''}
-                            </div>
-                            `;
-                        }).join('')}
-                    </div>
-                    ${[1,2,3,4,5,6,7,8,9,10,11,12].map(m => {
-                        const md = getMonthData(user, year, m);
-                        return `
-                        <div class="month-expanded ${openMonths.has(user.id+'-'+year+'-'+m) ? 'open' : ''}" id="month-${user.id}-${year}-${m}">
-                            <div class="month-detail">
-                                <div class="month-detail-header">
-                                    <strong>Tháng ${m}/${year}</strong>
-                                    <div>
-                                        <button class="month-btn ${md.checked ? 'checked' : ''}" style="padding:6px 12px;font-size:0.8rem" onclick="toggleMonth('${user.id}', '${year}', ${m})">
-                                            ${md.checked ? '✓ Đã duyệt' : 'Chưa duyệt'}
-                                        </button>
-                                        <label class="month-upload-btn">
-                                            📷 Thêm ảnh
-                                            <input type="file" accept="image/*" multiple style="display:none" onchange="uploadMonthImages(event, '${user.id}', '${year}', ${m})">
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="month-images">
-                                    ${(md.images || []).map((img, idx) => `
-                                        <div class="month-img-thumb">
-                                            <img src="${img}" onclick="showLightbox('${img}')">
-                                            <button class="del-img" onclick="deleteMonthImage('${user.id}', '${year}', ${m}, ${idx})">×</button>
-                                        </div>
-                                    `).join('')}
-                                    ${(!md.images || md.images.length === 0) ? '<span style="font-size:0.8rem;color:var(--text-light)">Chưa có ảnh</span>' : ''}
-                                </div>
-                            </div>
-                        </div>
-                        `;
-                    }).join('')}
-                </div>
-            `).join('');
+            return sortedYears.map(year => {
+                let h = '<div class="year-section">';
+                h += '<div class="year-header"><h4>Năm ' + year + '</h4>';
+                h += '<button class="btn-danger" onclick="deleteYear(\'' + user.id + '\', \'' + year + '\')" style="font-size:0.8rem;cursor:pointer">Xóa năm</button></div>';
+                h += '<div class="months-grid">';
+                for (let m = 1; m <= 12; m++) {
+                    const md = getMonthData(user, year, m);
+                    const imgCount = md.images ? md.images.length : 0;
+                    h += '<div class="month-btn ' + (md.checked ? 'checked' : '') + '" onclick="toggleMonthExpand(\'' + user.id + '\', \'' + year + '\', ' + m + ')">';
+                    h += 'T' + m + (imgCount > 0 ? ' (' + imgCount + '📷)' : '');
+                    h += '</div>';
+                }
+                h += '</div>';
+
+                for (let m = 1; m <= 12; m++) {
+                    const md = getMonthData(user, year, m);
+                    const key = user.id + '-' + year + '-' + m;
+                    h += '<div class="month-expanded ' + (openMonths.has(key) ? 'open' : '') + '">';
+                    h += '<div class="month-detail"><div class="month-detail-header">';
+                    h += '<strong>Tháng ' + m + '/' + year + '</strong><div>';
+                    h += '<button class="month-btn ' + (md.checked ? 'checked' : '') + '" style="padding:6px 12px;font-size:0.8rem" onclick="toggleMonth(\'' + user.id + '\', \'' + year + '\', ' + m + ')">';
+                    h += (md.checked ? '✓ Đã duyệt' : 'Chưa duyệt') + '</button>';
+                    h += '<label class="month-upload-btn">📷 Thêm ảnh<input type="file" accept="image/*" multiple style="display:none" onchange="uploadMonthImages(event, \'' + user.id + '\', \'' + year + '\', ' + m + ')"></label>';
+                    h += '</div></div><div class="month-images">';
+                    if (md.images && md.images.length > 0) {
+                        md.images.forEach((img, idx) => {
+                            h += '<div class="month-img-thumb"><img src="' + img + '" onclick="showLightbox(\'' + img + '\')"><button class="del-img" onclick="deleteMonthImage(\'' + user.id + '\', \'' + year + '\', ' + m + ', ' + idx + ')">×</button></div>';
+                        });
+                    } else {
+                        h += '<span style="font-size:0.8rem;color:var(--text-light)">Chưa có ảnh</span>';
+                    }
+                    h += '</div></div></div>';
+                }
+                h += '</div>';
+                return h;
+            }).join('');
         }
 
-        function toggleDetail(id) {
-            if (openDetails.has(id)) openDetails.delete(id);
-            else openDetails.add(id);
-            renderUsers();
-        }
-
-        function toggleMonthExpand(userId, year, month) {
-            const key = userId + '-' + year + '-' + month;
-            if (openMonths.has(key)) openMonths.delete(key);
-            else openMonths.add(key);
-            renderUsers();
-        }
-
+        // === ACTIONS ===
         function showLightbox(src) {
             const lb = document.createElement('div');
             lb.className = 'img-lightbox';
@@ -572,7 +787,7 @@
             user.years[year][month] = { checked: md.checked, images: [...currentImages] };
             openMonths.add(userId + '-' + year + '-' + month);
             openDetails.add(userId);
-            renderUsers();
+            renderAll();
 
             const realUrls = [];
             for (const file of files) {
@@ -585,13 +800,13 @@
             savedImages.push(...realUrls);
 
             await db.collection('buildUsers').doc(userId).update({
-                [`years.${year}.${month}`]: { checked: md.checked, images: savedImages }
+                ['years.' + year + '.' + month]: { checked: md.checked, images: savedImages }
             });
 
             user.years[year][month] = { checked: md.checked, images: savedImages };
             openMonths.add(userId + '-' + year + '-' + month);
             openDetails.add(userId);
-            renderUsers();
+            renderAll();
             localPreviews.forEach(p => URL.revokeObjectURL(p));
         }
 
@@ -602,36 +817,13 @@
             md.images.splice(imgIdx, 1);
 
             await db.collection('buildUsers').doc(userId).update({
-                [`years.${year}.${month}`]: { checked: md.checked, images: md.images }
+                ['years.' + year + '.' + month]: { checked: md.checked, images: md.images }
             });
 
             user.years[year][month] = md;
             openMonths.add(userId + '-' + year + '-' + month);
             openDetails.add(userId);
-            renderUsers();
-        }
-
-        async function addUser() {
-            const name = document.getElementById('newUserName').value.trim();
-            const phone = document.getElementById('newUserPhone').value.trim();
-            if (!name) return alert('Nhập tên!');
-
-            await db.collection('buildUsers').add({
-                name,
-                phone,
-                years: {},
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-
-            document.getElementById('newUserName').value = '';
-            document.getElementById('newUserPhone').value = '';
-            loadUsers();
-        }
-
-        async function deleteUser(id) {
-            if (!confirm('Xóa người dùng này?')) return;
-            await db.collection('buildUsers').doc(id).delete();
-            loadUsers();
+            renderAll();
         }
 
         async function addYear(userId) {
@@ -644,25 +836,27 @@
             for (let i = 1; i <= 12; i++) months[i] = { checked: false, images: [] };
 
             openDetails.add(userId);
-
             const user = allUsers.find(u => u.id === userId);
             if (user) {
                 if (!user.years) user.years = {};
                 user.years[year] = months;
-                renderUsers();
+                renderAll();
             }
 
             await db.collection('buildUsers').doc(userId).update({
-                [`years.${year}`]: months
+                ['years.' + year]: months
             });
         }
 
         async function deleteYear(userId, year) {
             if (!confirm('Xóa năm ' + year + '?')) return;
             await db.collection('buildUsers').doc(userId).update({
-                [`years.${year}`]: firebase.firestore.FieldValue.delete()
+                ['years.' + year]: firebase.firestore.FieldValue.delete()
             });
-            loadUsers();
+            const user = allUsers.find(u => u.id === userId);
+            if (user && user.years) delete user.years[year];
+            openDetails.add(userId);
+            renderAll();
         }
 
         async function toggleMonth(userId, year, month) {
@@ -671,17 +865,21 @@
             md.checked = !md.checked;
 
             await db.collection('buildUsers').doc(userId).update({
-                [`years.${year}.${month}`]: md
+                ['years.' + year + '.' + month]: md
             });
 
             user.years[year][month] = md;
             openMonths.add(userId + '-' + year + '-' + month);
             openDetails.add(userId);
-            renderUsers();
+            renderAll();
         }
 
         // Init
-        loadUsers();
+        async function init() {
+            await Promise.all([loadFolders(), loadUsers()]);
+            renderAll();
+        }
+        init();
     </script>
 </body>
 </html>

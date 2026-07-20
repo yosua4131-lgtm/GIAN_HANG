@@ -7,6 +7,98 @@
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="admin.css">
+    <style>
+        .cat-section { margin-bottom: 28px; }
+        .cat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 18px;
+            background: var(--card);
+            border: 1.5px solid var(--border);
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 2px;
+        }
+        .cat-header:hover {
+            border-color: var(--primary-light);
+            box-shadow: var(--shadow);
+        }
+        .cat-header h3 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .cat-header .cat-count {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            font-weight: 500;
+        }
+        .cat-header .cat-actions {
+            display: flex;
+            gap: 6px;
+        }
+        .cat-header .cat-actions button {
+            padding: 5px 12px;
+            border-radius: 20px;
+            border: 1.5px solid var(--border);
+            background: var(--bg);
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .cat-header .cat-actions button:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        .cat-body {
+            display: none;
+            padding: 12px 0 0 0;
+        }
+        .cat-body.open {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        .cat-add-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: var(--card);
+            padding: 14px 18px;
+            border-radius: 14px;
+            border: 1.5px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+        .cat-add-form input {
+            flex: 1;
+            padding: 10px 16px;
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            background: var(--bg);
+            transition: all 0.2s;
+        }
+        .cat-add-form input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: #fff;
+        }
+        .no-cat-products {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 2px dashed var(--border);
+        }
+        .no-cat-products h3 {
+            font-size: 1rem;
+            color: var(--text-light);
+            margin-bottom: 12px;
+        }
+    </style>
 </head>
 <body>
     <header class="header">
@@ -21,7 +113,6 @@
     </header>
 
     <main class="container admin-main">
-        <!-- Tabs -->
         <div class="tabs">
             <button class="tab active" onclick="switchTab('products')">Sản phẩm</button>
             <button class="tab" onclick="switchTab('orders')">Đơn hàng</button>
@@ -35,9 +126,18 @@
                 <button class="btn-primary" onclick="openProductForm()">+ Thêm món</button>
             </div>
 
+            <!-- Add category -->
+            <div class="cat-add-form">
+                <input type="text" id="newCatName" placeholder="Tên loại sản phẩm mới...">
+                <button class="btn-primary" onclick="addCategory()">+ Thêm loại</button>
+            </div>
+
             <div id="productForm" class="form-card hidden">
                 <h3 id="formTitle">Thêm món mới</h3>
                 <input type="hidden" id="editId">
+                <select id="pCategory" style="width:100%;padding:11px 16px;border:1.5px solid var(--border);border-radius:12px;margin-bottom:12px;font-family:inherit;font-size:0.9rem;background:var(--bg)">
+                    <option value="">-- Chọn loại sản phẩm --</option>
+                </select>
                 <input type="text" id="pName" placeholder="Tên món" required>
                 <input type="number" id="pPrice" placeholder="Giá (VNĐ)" required>
                 <div class="image-upload-group">
@@ -87,22 +187,20 @@
     <script src="firebase-config.js"></script>
     <script>
         const db = firebase.firestore();
+        let allCategories = [];
+        let allProducts = [];
+        let openCats = new Set();
 
-        // Tabs
         function switchTab(name) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.getElementById('tab-' + name).classList.add('active');
             event.target.classList.add('active');
-
             if (name === 'orders') loadOrders();
             if (name === 'notifications') loadNotifications();
         }
 
-        // === CONFIG ===
         const R2_URL = 'https://gian-hang-r2.yosua-4131.workers.dev';
-
-        // === PRODUCTS ===
         let pendingFiles = [];
         let existingImages = [];
 
@@ -136,16 +234,69 @@
             return data.url || (R2_URL + '/' + path);
         }
 
+        // === CATEGORIES ===
+        async function loadCategories() {
+            const snapshot = await db.collection('categories').orderBy('order').get();
+            allCategories = [];
+            snapshot.forEach(doc => {
+                allCategories.push({ id: doc.id, ...doc.data() });
+            });
+            updateCategorySelect();
+        }
+
+        function updateCategorySelect() {
+            const sel = document.getElementById('pCategory');
+            if (!sel) return;
+            sel.innerHTML = '<option value="">-- Không có loại --</option>';
+            allCategories.forEach(c => {
+                sel.innerHTML += '<option value="' + c.id + '">' + c.name + '</option>';
+            });
+        }
+
+        async function addCategory() {
+            const input = document.getElementById('newCatName');
+            const name = input.value.trim();
+            if (!name) return alert('Nhập tên loại!');
+            await db.collection('categories').add({
+                name,
+                order: allCategories.length,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            input.value = '';
+            await loadCategories();
+            loadProducts();
+        }
+
+        async function renameCategory(id) {
+            const cat = allCategories.find(c => c.id === id);
+            const name = prompt('Đổi tên loại:', cat ? cat.name : '');
+            if (!name || !name.trim()) return;
+            await db.collection('categories').doc(id).update({ name: name.trim() });
+            await loadCategories();
+            loadProducts();
+        }
+
+        async function deleteCategory(id) {
+            if (!confirm('Xóa loại này? Các món trong loại sẽ thành "không có loại".')) return;
+            const prods = allProducts.filter(p => p.categoryId === id);
+            const batch = db.batch();
+            prods.forEach(p => batch.update(db.collection('products').doc(p.id), { categoryId: '' }));
+            batch.delete(db.collection('categories').doc(id));
+            await batch.commit();
+            await loadCategories();
+            loadProducts();
+        }
+
+        function toggleCat(id) {
+            if (openCats.has(id)) openCats.delete(id);
+            else openCats.add(id);
+            renderProductList();
+        }
+
+        // === PRODUCTS ===
         function handleProductFiles(e) {
             const files = Array.from(e.target.files);
-            files.forEach(file => {
-                pendingFiles.push(file);
-                const reader = new FileReader();
-                reader.onload = function(ev) {
-                    renderImagePreviews();
-                };
-                reader.readAsDataURL(file);
-            });
+            files.forEach(file => pendingFiles.push(file));
             renderImagePreviews();
         }
 
@@ -162,15 +313,8 @@
             list.innerHTML = html;
         }
 
-        function removeExistingImage(i) {
-            existingImages.splice(i, 1);
-            renderImagePreviews();
-        }
-
-        function removePendingFile(i) {
-            pendingFiles.splice(i, 1);
-            renderImagePreviews();
-        }
+        function removeExistingImage(i) { existingImages.splice(i, 1); renderImagePreviews(); }
+        function removePendingFile(i) { pendingFiles.splice(i, 1); renderImagePreviews(); }
 
         function openProductForm(id, data) {
             document.getElementById('productForm').classList.remove('hidden');
@@ -183,6 +327,7 @@
                 document.getElementById('pName').value = data.name;
                 document.getElementById('pPrice').value = data.price;
                 document.getElementById('pDesc').value = data.description || '';
+                document.getElementById('pCategory').value = data.categoryId || '';
                 existingImages = data.images || (data.image ? [data.image] : []);
             } else {
                 document.getElementById('formTitle').textContent = 'Thêm món mới';
@@ -190,6 +335,7 @@
                 document.getElementById('pName').value = '';
                 document.getElementById('pPrice').value = '';
                 document.getElementById('pDesc').value = '';
+                document.getElementById('pCategory').value = '';
             }
             renderImagePreviews();
         }
@@ -218,6 +364,7 @@
             const data = {
                 name: document.getElementById('pName').value.trim(),
                 price: parseInt(document.getElementById('pPrice').value),
+                categoryId: document.getElementById('pCategory').value,
                 images: allImages,
                 image: allImages[0] || '',
                 description: document.getElementById('pDesc').value.trim(),
@@ -256,68 +403,87 @@
         }
 
         async function loadProducts() {
-            const list = document.getElementById('productList');
             const snapshot = await db.collection('products').get();
+            allProducts = [];
+            snapshot.forEach(doc => {
+                allProducts.push({ id: doc.id, ...doc.data() });
+            });
+            renderProductList();
+        }
 
-            if (snapshot.empty) {
+        function renderProductList() {
+            const list = document.getElementById('productList');
+            if (allProducts.length === 0 && allCategories.length === 0) {
                 list.innerHTML = '<p class="empty">Chưa có sản phẩm</p>';
                 return;
             }
 
-            list.innerHTML = '';
-            snapshot.forEach(doc => {
-                const d = doc.data();
-                list.innerHTML += `
-                    <div class="product-row ${!d.active ? 'inactive' : ''}">
-                        <div class="product-info">
-                            <strong>${d.name}</strong>
-                            <span>${formatPrice(d.price)}</span>
-                            <span class="badge ${d.active ? 'badge-green' : 'badge-gray'}">${d.active ? 'Đang bán' : 'Ẩn'}</span>
-                        </div>
-                        <div class="product-actions">
-                            <button onclick="toggleProduct('${doc.id}', ${d.active})">${d.active ? 'Ẩn' : 'Hiện'}</button>
-                            <button onclick="openProductForm('${doc.id}', ${JSON.stringify(d).replace(/"/g, '&quot;')})">Sửa</button>
-                            <button class="btn-danger" onclick="deleteProduct('${doc.id}')">Xóa</button>
-                        </div>
-                    </div>
-                `;
+            let html = '';
+
+            allCategories.forEach(cat => {
+                const prods = allProducts.filter(p => p.categoryId === cat.id);
+                const isOpen = openCats.has(cat.id);
+                html += '<div class="cat-section">';
+                html += '<div class="cat-header" onclick="toggleCat(\'' + cat.id + '\')">';
+                html += '<h3>' + (isOpen ? '📂' : '📁') + ' ' + cat.name + ' <span class="cat-count">(' + prods.length + ' món)</span></h3>';
+                html += '<div class="cat-actions">';
+                html += '<button onclick="event.stopPropagation(); renameCategory(\'' + cat.id + '\')">Sửa tên</button>';
+                html += '<button onclick="event.stopPropagation(); deleteCategory(\'' + cat.id + '\')">Xóa</button>';
+                html += '</div></div>';
+                html += '<div class="cat-body ' + (isOpen ? 'open' : '') + '">';
+                if (prods.length === 0) {
+                    html += '<p style="padding:14px;color:var(--text-light);font-size:0.9rem">Chưa có món nào trong loại này</p>';
+                } else {
+                    prods.forEach(d => { html += renderProductRow(d); });
+                }
+                html += '</div></div>';
             });
+
+            const uncategorized = allProducts.filter(p => !p.categoryId || !allCategories.find(c => c.id === p.categoryId));
+            if (uncategorized.length > 0) {
+                html += '<div class="no-cat-products"><h3>📋 Chưa phân loại</h3>';
+                uncategorized.forEach(d => { html += renderProductRow(d); });
+                html += '</div>';
+            }
+
+            list.innerHTML = html || '<p class="empty">Chưa có sản phẩm</p>';
+        }
+
+        function renderProductRow(d) {
+            return '<div class="product-row ' + (!d.active ? 'inactive' : '') + '">'
+                + '<div class="product-info">'
+                + '<strong>' + d.name + '</strong>'
+                + '<span>' + formatPrice(d.price) + '</span>'
+                + '<span class="badge ' + (d.active ? 'badge-green' : 'badge-gray') + '">' + (d.active ? 'Đang bán' : 'Ẩn') + '</span>'
+                + '</div>'
+                + '<div class="product-actions">'
+                + '<button onclick="toggleProduct(\'' + d.id + '\', ' + d.active + ')">' + (d.active ? 'Ẩn' : 'Hiện') + '</button>'
+                + '<button onclick="openProductForm(\'' + d.id + '\', ' + JSON.stringify(d).replace(/"/g, '&quot;') + ')">Sửa</button>'
+                + '<button class="btn-danger" onclick="deleteProduct(\'' + d.id + '\')">Xóa</button>'
+                + '</div></div>';
         }
 
         // === ORDERS ===
         async function loadOrders() {
             const list = document.getElementById('orderList');
             const snapshot = await db.collection('orders').orderBy('createdAt', 'desc').limit(50).get();
-
-            if (snapshot.empty) {
-                list.innerHTML = '<p class="empty">Chưa có đơn hàng</p>';
-                return;
-            }
-
+            if (snapshot.empty) { list.innerHTML = '<p class="empty">Chưa có đơn hàng</p>'; return; }
             list.innerHTML = '';
             snapshot.forEach(doc => {
                 const d = doc.data();
                 const time = d.createdAt ? new Date(d.createdAt.toDate()).toLocaleString('vi-VN') : '';
-                const items = d.items.map(i => `${i.name} x${i.qty}`).join(', ');
-                list.innerHTML += `
-                    <div class="order-card">
-                        <div class="order-header">
-                            <strong>${d.customer}</strong>
-                            <span class="order-time">${time}</span>
-                        </div>
-                        <p class="order-items">${items}</p>
-                        ${d.note ? `<p class="order-note">📝 ${d.note}</p>` : ''}
-                        <div class="order-footer">
-                            <span class="order-total">${formatPrice(d.total)}</span>
-                            <select onchange="updateOrderStatus('${doc.id}', this.value)">
-                                <option value="pending" ${d.status === 'pending' ? 'selected' : ''}>Chờ xử lý</option>
-                                <option value="confirmed" ${d.status === 'confirmed' ? 'selected' : ''}>Đã xác nhận</option>
-                                <option value="done" ${d.status === 'done' ? 'selected' : ''}>Hoàn thành</option>
-                                <option value="cancelled" ${d.status === 'cancelled' ? 'selected' : ''}>Hủy</option>
-                            </select>
-                        </div>
-                    </div>
-                `;
+                const items = d.items.map(i => i.name + ' x' + i.qty).join(', ');
+                list.innerHTML += '<div class="order-card">'
+                    + '<div class="order-header"><strong>' + d.customer + '</strong><span class="order-time">' + time + '</span></div>'
+                    + '<p class="order-items">' + items + '</p>'
+                    + (d.note ? '<p class="order-note">📝 ' + d.note + '</p>' : '')
+                    + '<div class="order-footer"><span class="order-total">' + formatPrice(d.total) + '</span>'
+                    + '<select onchange="updateOrderStatus(\'' + doc.id + '\', this.value)">'
+                    + '<option value="pending"' + (d.status === 'pending' ? ' selected' : '') + '>Chờ xử lý</option>'
+                    + '<option value="confirmed"' + (d.status === 'confirmed' ? ' selected' : '') + '>Đã xác nhận</option>'
+                    + '<option value="done"' + (d.status === 'done' ? ' selected' : '') + '>Hoàn thành</option>'
+                    + '<option value="cancelled"' + (d.status === 'cancelled' ? ' selected' : '') + '>Hủy</option>'
+                    + '</select></div></div>';
             });
         }
 
@@ -329,22 +495,12 @@
         async function loadNotifications() {
             const list = document.getElementById('notifList');
             const snapshot = await db.collection('notifications').orderBy('createdAt', 'desc').limit(30).get();
-
-            if (snapshot.empty) {
-                list.innerHTML = '<p class="empty">Không có thông báo</p>';
-                return;
-            }
-
+            if (snapshot.empty) { list.innerHTML = '<p class="empty">Không có thông báo</p>'; return; }
             list.innerHTML = '';
             snapshot.forEach(doc => {
                 const d = doc.data();
                 const time = d.createdAt ? new Date(d.createdAt.toDate()).toLocaleString('vi-VN') : '';
-                list.innerHTML += `
-                    <div class="notif-item ${!d.read ? 'unread' : ''}">
-                        <span>${d.message}</span>
-                        <small>${time}</small>
-                    </div>
-                `;
+                list.innerHTML += '<div class="notif-item ' + (!d.read ? 'unread' : '') + '"><span>' + d.message + '</span><small>' + time + '</small></div>';
             });
         }
 
@@ -360,21 +516,19 @@
         async function checkNotifications() {
             const snapshot = await db.collection('notifications').where('read', '==', false).get();
             const badge = document.getElementById('notifBadge');
-            if (snapshot.size > 0) {
-                badge.textContent = snapshot.size;
-                badge.classList.remove('hidden');
-            } else {
-                badge.classList.add('hidden');
-            }
+            if (snapshot.size > 0) { badge.textContent = snapshot.size; badge.classList.remove('hidden'); }
+            else { badge.classList.add('hidden'); }
         }
 
-        function formatPrice(n) {
-            return n.toLocaleString('vi-VN') + 'đ';
-        }
+        function formatPrice(n) { return n.toLocaleString('vi-VN') + 'đ'; }
 
         // Init
-        loadProducts();
-        checkNotifications();
+        async function init() {
+            await loadCategories();
+            loadProducts();
+            checkNotifications();
+        }
+        init();
     </script>
 </body>
 </html>

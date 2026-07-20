@@ -160,6 +160,17 @@
             font-weight: 600;
             z-index: 2;
         }
+        .cat-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin: 28px 0 14px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--primary-light);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .cat-title:first-child { margin-top: 0; }
     </style>
 </head>
 <body>
@@ -175,7 +186,7 @@
     <main class="container">
         <section class="menu-section">
             <h2>Menu</h2>
-            <div id="menuGrid" class="menu-grid">
+            <div id="menuGrid">
                 <p class="loading">Đang tải menu...</p>
             </div>
         </section>
@@ -213,24 +224,54 @@
         const db = firebase.firestore();
         let cart = [];
         let allProducts = [];
+        let allCategories = [];
         let pmSlide = 0;
 
         async function loadMenu() {
             const grid = document.getElementById('menuGrid');
-            const snapshot = await db.collection('products').where('active', '==', true).get();
 
-            if (snapshot.empty) {
+            const [catSnap, prodSnap] = await Promise.all([
+                db.collection('categories').orderBy('order').get(),
+                db.collection('products').where('active', '==', true).get()
+            ]);
+
+            allCategories = [];
+            catSnap.forEach(doc => allCategories.push({ id: doc.id, ...doc.data() }));
+
+            allProducts = [];
+            prodSnap.forEach(doc => allProducts.push({ id: doc.id, ...doc.data() }));
+
+            if (allProducts.length === 0) {
                 grid.innerHTML = '<p class="empty">Chưa có món nào trong menu</p>';
                 return;
             }
 
-            allProducts = [];
-            grid.innerHTML = '';
-            snapshot.forEach(doc => {
-                const item = { id: doc.id, ...doc.data() };
-                allProducts.push(item);
-                grid.innerHTML += renderMenuItem(item);
-            });
+            let html = '';
+
+            if (allCategories.length > 0) {
+                allCategories.forEach(cat => {
+                    const prods = allProducts.filter(p => p.categoryId === cat.id);
+                    if (prods.length === 0) return;
+                    html += '<div class="cat-title">🔥 ' + cat.name + '</div>';
+                    html += '<div class="menu-grid">';
+                    prods.forEach(item => { html += renderMenuItem(item); });
+                    html += '</div>';
+                });
+
+                const uncategorized = allProducts.filter(p => !p.categoryId || !allCategories.find(c => c.id === p.categoryId));
+                if (uncategorized.length > 0) {
+                    if (allCategories.length > 0) html += '<div class="cat-title">📋 Khác</div>';
+                    html += '<div class="menu-grid">';
+                    uncategorized.forEach(item => { html += renderMenuItem(item); });
+                    html += '</div>';
+                }
+            } else {
+                html += '<div class="menu-grid">';
+                allProducts.forEach(item => { html += renderMenuItem(item); });
+                html += '</div>';
+            }
+
+            grid.innerHTML = html;
         }
 
         function renderMenuItem(item) {
