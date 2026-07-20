@@ -1320,12 +1320,20 @@
             + '\n\n📋 Trạng thái: Chờ xác nhận';
         const keyboard = { inline_keyboard: [
             [{ text: '✅ Chờ xác nhận', callback_data: orderId + ':pending' }, { text: 'Đã xác nhận', callback_data: orderId + ':confirmed' }, { text: 'Đang chuẩn bị', callback_data: orderId + ':preparing' }],
-            [{ text: 'Đang giao', callback_data: orderId + ':delivering' }, { text: 'Hoàn thành', callback_data: orderId + ':done' }, { text: 'Đã hủy', callback_data: orderId + ':cancelled' }]
+            [{ text: 'Đang giao', callback_data: orderId + ':delivering' }, { text: 'Hoàn thành', callback_data: orderId + ':done' }, { text: 'Đã hủy', callback_data: orderId + ':cancelled' }],
+            [{ text: '🗑 Xóa đơn', callback_data: orderId + ':delete' }]
         ]};
         fetch('https://api.telegram.org/bot' + teleToken + '/sendMessage', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ chat_id: teleChatId, text: text, reply_markup: keyboard })
+        }).then(function(r) { return r.json(); }).then(function(data) {
+            if (data.ok && data.result) {
+                db.collection('orders').doc(orderId).update({
+                    telegramMsgId: data.result.message_id,
+                    telegramChatId: String(teleChatId)
+                });
+            }
         }).catch(function() {});
     }
 

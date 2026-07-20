@@ -33,6 +33,7 @@ function buildKeyboard(orderId, currentStatus) {
         }));
         rows.push(row);
     }
+    rows.push([{ text: '🗑 Xóa đơn', callback_data: orderId + ':delete' }]);
     return { inline_keyboard: rows };
 }
 
@@ -74,7 +75,25 @@ module.exports = async function handler(req, res) {
         const cb = update.callback_query;
         const [orderId, newStatus] = cb.data.split(':');
 
-        if (!orderId || !STATUS[newStatus]) {
+        if (!orderId) {
+            await telegramApi(token, 'answerCallbackQuery', { callback_query_id: cb.id, text: 'Lỗi dữ liệu' });
+            return res.status(200).send('OK');
+        }
+
+        if (newStatus === 'delete') {
+            await db.collection('orders').doc(orderId).delete();
+            await telegramApi(token, 'deleteMessage', {
+                chat_id: cb.message.chat.id,
+                message_id: cb.message.message_id
+            });
+            await telegramApi(token, 'answerCallbackQuery', {
+                callback_query_id: cb.id,
+                text: '🗑 Đã xóa đơn hàng'
+            });
+            return res.status(200).send('OK');
+        }
+
+        if (!STATUS[newStatus]) {
             await telegramApi(token, 'answerCallbackQuery', { callback_query_id: cb.id, text: 'Lỗi dữ liệu' });
             return res.status(200).send('OK');
         }

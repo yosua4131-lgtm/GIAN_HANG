@@ -535,12 +535,35 @@
                     + '<option value="delivering"' + (d.status === 'delivering' ? ' selected' : '') + '>Đang giao</option>'
                     + '<option value="done"' + (d.status === 'done' ? ' selected' : '') + '>Hoàn thành</option>'
                     + '<option value="cancelled"' + (d.status === 'cancelled' ? ' selected' : '') + '>Đã hủy</option>'
-                    + '</select></div></div>';
+                    + '</select>'
+                    + '<button class="btn-danger" onclick="deleteOrder(\'' + doc.id + '\')" style="margin-left:8px;padding:4px 10px;font-size:0.8rem">Xóa</button>'
+                    + '</div></div>';
             });
         }
 
         async function updateOrderStatus(id, status) {
             await db.collection('orders').doc(id).update({ status });
+        }
+
+        async function deleteOrder(id) {
+            if (!confirm('Xóa đơn hàng này?')) return;
+            const doc = await db.collection('orders').doc(id).get();
+            const d = doc.data();
+            if (d && d.telegramMsgId && d.telegramChatId) {
+                const settingsDoc = await db.collection('settings').doc('telegram').get();
+                if (settingsDoc.exists) {
+                    const t = settingsDoc.data().token;
+                    if (t) {
+                        fetch('https://api.telegram.org/bot' + t + '/deleteMessage', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ chat_id: d.telegramChatId, message_id: d.telegramMsgId })
+                        }).catch(function() {});
+                    }
+                }
+            }
+            await db.collection('orders').doc(id).delete();
+            loadOrders();
         }
 
         // === ADDRESSES ===
