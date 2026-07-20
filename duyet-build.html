@@ -567,20 +567,32 @@
             const md = getMonthData(user, year, month);
             const currentImages = md.images || [];
 
-            for (const file of files) {
-                const path = 'build/' + userId + '/' + year + '/' + month + '/' + Date.now() + '.jpg';
-                const url = await uploadToR2(file, path);
-                if (url) currentImages.push(url);
-            }
-
-            await db.collection('buildUsers').doc(userId).update({
-                [`years.${year}.${month}`]: { checked: md.checked, images: currentImages }
-            });
-
-            user.years[year][month] = { checked: md.checked, images: currentImages };
+            const localPreviews = files.map(f => URL.createObjectURL(f));
+            localPreviews.forEach(p => currentImages.push(p));
+            user.years[year][month] = { checked: md.checked, images: [...currentImages] };
             openMonths.add(userId + '-' + year + '-' + month);
             openDetails.add(userId);
             renderUsers();
+
+            const realUrls = [];
+            for (const file of files) {
+                const path = 'build/' + userId + '/' + year + '/' + month + '/' + Date.now() + '.jpg';
+                const url = await uploadToR2(file, path);
+                if (url) realUrls.push(url);
+            }
+
+            const savedImages = currentImages.filter(img => !img.startsWith('blob:'));
+            savedImages.push(...realUrls);
+
+            await db.collection('buildUsers').doc(userId).update({
+                [`years.${year}.${month}`]: { checked: md.checked, images: savedImages }
+            });
+
+            user.years[year][month] = { checked: md.checked, images: savedImages };
+            openMonths.add(userId + '-' + year + '-' + month);
+            openDetails.add(userId);
+            renderUsers();
+            localPreviews.forEach(p => URL.revokeObjectURL(p));
         }
 
         async function deleteMonthImage(userId, year, month, imgIdx) {
