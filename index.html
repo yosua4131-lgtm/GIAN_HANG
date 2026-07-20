@@ -192,33 +192,38 @@
         /* === MENU === */
         .cat-nav {
             display: flex;
-            gap: 8px;
+            gap: 10px;
             overflow-x: auto;
-            padding: 0 0 10px;
-            margin-bottom: 6px;
+            padding: 10px 16px;
+            margin: 0;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
+            position: sticky;
+            top: 54px;
+            z-index: 99;
+            background: var(--bg);
+            border-bottom: 1px solid var(--line);
         }
         .cat-nav::-webkit-scrollbar { display: none; }
         .cat-nav-btn {
             flex-shrink: 0;
-            padding: 7px 16px;
-            border-radius: 20px;
-            border: 1.5px solid var(--line);
+            padding: 9px 20px;
+            border-radius: 24px;
+            border: none;
             background: var(--surface);
             color: var(--ink);
             font-family: inherit;
-            font-size: 0.82rem;
-            font-weight: 600;
+            font-size: 0.88rem;
+            font-weight: 700;
             cursor: pointer;
             transition: all .2s;
             white-space: nowrap;
+            box-shadow: 0 1px 4px rgba(0,0,0,.08);
         }
-        .cat-nav-btn.active,
-        .cat-nav-btn:active {
+        .cat-nav-btn.active {
             background: var(--orange);
             color: #fff;
-            border-color: var(--orange);
+            box-shadow: 0 2px 8px rgba(238,77,45,.35);
         }
         .menu-section { padding: 16px 0 40px; }
         .menu-heading {
@@ -825,10 +830,10 @@
     </div>
 </div>
 
+<div class="cat-nav" id="catNav"></div>
 <main class="main">
     <section class="menu-section">
         <h1 class="menu-heading">Menu</h1>
-        <div class="cat-nav" id="catNav"></div>
         <div id="menuGrid"><p class="empty">Đang tải...</p></div>
     </section>
 </main>
@@ -904,11 +909,23 @@
     function scrollToCat(id) {
         const el = document.getElementById('cat-' + id);
         if (!el) return;
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const offset = 120;
+        window.scrollTo({ top: el.offsetTop - offset, behavior: 'smooth' });
         document.querySelectorAll('.cat-nav-btn').forEach(b => b.classList.remove('active'));
-        const btns = document.querySelectorAll('.cat-nav-btn');
-        btns.forEach(b => { if (b.onclick && b.getAttribute('onclick').includes(id)) b.classList.add('active'); });
+        document.querySelectorAll('.cat-nav-btn').forEach(b => {
+            if (b.getAttribute('onclick').includes(id)) b.classList.add('active');
+        });
     }
+    window.addEventListener('scroll', function() {
+        const labels = document.querySelectorAll('.cat-label[id]');
+        const btns = document.querySelectorAll('.cat-nav-btn');
+        if (!labels.length) return;
+        let activeIdx = 0;
+        labels.forEach((el, i) => {
+            if (window.scrollY + 140 >= el.offsetTop) activeIdx = i;
+        });
+        btns.forEach((b, i) => b.classList.toggle('active', i === activeIdx));
+    });
 
     function cardHTML(item) {
         const img = (item.images && item.images[0]) || item.image || '';
