@@ -396,6 +396,29 @@
             font-size: 0.82rem;
         }
 
+        /* === FLY TO CART === */
+        .fly-item {
+            position: fixed;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--gradient);
+            z-index: 9999;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 1.1rem;
+            box-shadow: 0 4px 15px rgba(230,57,70,0.5);
+            transition: all 0.65s cubic-bezier(0.2, 1, 0.3, 1);
+            opacity: 1;
+        }
+        .fly-item.fly {
+            transform: scale(0.3);
+            opacity: 0;
+        }
+
         /* === RESPONSIVE === */
         @media (max-width: 600px) {
             .hero { padding: 24px 20px; }
@@ -528,7 +551,7 @@
                 + '<div class="item-info"><h3>' + item.name + '</h3>'
                 + '<p class="item-desc">' + (item.description || '') + '</p>'
                 + '<div class="item-bottom"><span class="item-price">' + formatPrice(item.price) + '</span>'
-                + '<button class="btn-add" onclick="event.stopPropagation(); addToCart(\'' + item.id + '\', \'' + item.name.replace(/'/g, "\\'") + '\', ' + item.price + ')">+ Them</button>'
+                + '<button class="btn-add" onclick="event.stopPropagation(); addToCart(\'' + item.id + '\', \'' + item.name.replace(/'/g, "\\'") + '\', ' + item.price + ', event)">+ Them</button>'
                 + '</div></div></div>';
         }
 
@@ -555,7 +578,7 @@
                 + '<div class="pm-name">' + item.name + '</div>'
                 + '<div class="pm-price">' + formatPrice(item.price) + '</div>'
                 + (item.description ? '<div class="pm-desc">' + item.description + '</div>' : '')
-                + '<button class="pm-add-btn" onclick="addToCart(\'' + item.id + '\', \'' + item.name.replace(/'/g, "\\'") + '\', ' + item.price + '); closeProduct()">🛒 Them vao gio hang</button>'
+                + '<button class="pm-add-btn" onclick="addToCart(\'' + item.id + '\', \'' + item.name.replace(/'/g, "\\'") + '\', ' + item.price + ', event); closeProduct()">🛒 Them vao gio hang</button>'
                 + '</div></div>';
             modal.classList.remove('hidden');
             modal.onclick = function(e) { if (e.target === modal) closeProduct(); };
@@ -582,7 +605,7 @@
             document.querySelectorAll('.pm-dot').forEach((d, j) => d.classList.toggle('active', j === pmSlide));
         }
 
-        function addToCart(id, name, price) {
+        function addToCart(id, name, price, e) {
             const existing = cart.find(c => c.id === id);
             if (existing) {
                 existing.qty++;
@@ -592,10 +615,42 @@
             updateCartUI();
             showToast('Da them ' + name);
 
-            const btn = document.getElementById('cartIconBtn');
-            btn.classList.remove('bounce');
-            void btn.offsetWidth;
-            btn.classList.add('bounce');
+            flyToCart(e);
+        }
+
+        function flyToCart(e) {
+            const cartEl = document.getElementById('cartIconBtn');
+            const cartRect = cartEl.getBoundingClientRect();
+
+            let startX, startY;
+            if (e && e.target) {
+                const btnRect = e.target.getBoundingClientRect();
+                startX = btnRect.left + btnRect.width / 2 - 20;
+                startY = btnRect.top + btnRect.height / 2 - 20;
+            } else {
+                startX = window.innerWidth / 2 - 20;
+                startY = window.innerHeight / 2;
+            }
+
+            const fly = document.createElement('div');
+            fly.className = 'fly-item';
+            fly.textContent = '🛒';
+            fly.style.left = startX + 'px';
+            fly.style.top = startY + 'px';
+            document.body.appendChild(fly);
+
+            requestAnimationFrame(() => {
+                fly.style.left = (cartRect.left + cartRect.width / 2 - 20) + 'px';
+                fly.style.top = (cartRect.top + cartRect.height / 2 - 20) + 'px';
+                fly.classList.add('fly');
+            });
+
+            setTimeout(() => {
+                fly.remove();
+                cartEl.classList.remove('bounce');
+                void cartEl.offsetWidth;
+                cartEl.classList.add('bounce');
+            }, 650);
         }
 
         function removeFromCart(id) {
