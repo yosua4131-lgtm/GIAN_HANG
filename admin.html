@@ -116,6 +116,7 @@
         <div class="tabs">
             <button class="tab active" onclick="switchTab('products')">Sản phẩm</button>
             <button class="tab" onclick="switchTab('orders')">Đơn hàng</button>
+            <button class="tab" onclick="switchTab('addresses')">Địa chỉ</button>
             <button class="tab" onclick="switchTab('notifications')">Thông báo</button>
         </div>
 
@@ -172,6 +173,18 @@
             </div>
         </section>
 
+        <!-- Tab: Addresses -->
+        <section id="tab-addresses" class="tab-content">
+            <h2>Địa chỉ giao hàng mặc định</h2>
+            <div class="cat-add-form">
+                <input type="text" id="newAddress" placeholder="Nhập địa chỉ mới...">
+                <button class="btn-primary" onclick="addAddress()">+ Thêm</button>
+            </div>
+            <div id="addressList" class="order-list">
+                <p class="loading">Đang tải...</p>
+            </div>
+        </section>
+
         <!-- Tab: Notifications -->
         <section id="tab-notifications" class="tab-content">
             <h2>Thông báo</h2>
@@ -197,6 +210,7 @@
             document.getElementById('tab-' + name).classList.add('active');
             event.target.classList.add('active');
             if (name === 'orders') loadOrders();
+            if (name === 'addresses') loadAddresses();
             if (name === 'notifications') loadNotifications();
         }
 
@@ -489,6 +503,47 @@
 
         async function updateOrderStatus(id, status) {
             await db.collection('orders').doc(id).update({ status });
+        }
+
+        // === ADDRESSES ===
+        async function loadAddresses() {
+            const list = document.getElementById('addressList');
+            const snap = await db.collection('addresses').orderBy('order').get();
+            if (snap.empty) { list.innerHTML = '<p class="loading">Chưa có địa chỉ nào</p>'; return; }
+            let html = '';
+            snap.forEach(doc => {
+                const d = doc.data();
+                html += '<div class="order-card" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;margin-bottom:8px">'
+                    + '<span style="font-weight:600">' + d.name + '</span>'
+                    + '<div style="display:flex;gap:8px">'
+                    + '<button class="btn-secondary" onclick="renameAddress(\'' + doc.id + '\',\'' + d.name.replace(/'/g, "\\'") + '\')">Sửa</button>'
+                    + '<button class="btn-danger" onclick="deleteAddress(\'' + doc.id + '\')">Xóa</button>'
+                    + '</div></div>';
+            });
+            list.innerHTML = html;
+        }
+
+        async function addAddress() {
+            const input = document.getElementById('newAddress');
+            const name = input.value.trim();
+            if (!name) return;
+            const snap = await db.collection('addresses').get();
+            await db.collection('addresses').add({ name: name, order: snap.size });
+            input.value = '';
+            loadAddresses();
+        }
+
+        async function renameAddress(id, oldName) {
+            const newName = prompt('Đổi tên địa chỉ:', oldName);
+            if (!newName || newName.trim() === oldName) return;
+            await db.collection('addresses').doc(id).update({ name: newName.trim() });
+            loadAddresses();
+        }
+
+        async function deleteAddress(id) {
+            if (!confirm('Xóa địa chỉ này?')) return;
+            await db.collection('addresses').doc(id).delete();
+            loadAddresses();
         }
 
         // === NOTIFICATIONS ===

@@ -760,20 +760,24 @@
     let cart = [];
     let allProducts = [];
     let allCategories = [];
+    let allAddresses = [];
     let pmSlide = 0;
 
     // === MENU ===
     async function loadMenu() {
         const grid = document.getElementById('menuGrid');
-        const [catSnap, prodSnap] = await Promise.all([
+        const [catSnap, prodSnap, addrSnap] = await Promise.all([
             db.collection('categories').orderBy('order').get(),
-            db.collection('products').where('active', '==', true).get()
+            db.collection('products').where('active', '==', true).get(),
+            db.collection('addresses').orderBy('order').get()
         ]);
 
         allCategories = [];
         catSnap.forEach(doc => allCategories.push({ id: doc.id, ...doc.data() }));
         allProducts = [];
         prodSnap.forEach(doc => allProducts.push({ id: doc.id, ...doc.data() }));
+        allAddresses = [];
+        addrSnap.forEach(doc => allAddresses.push({ id: doc.id, ...doc.data() }));
 
         if (allProducts.length === 0) {
             grid.innerHTML = '<p class="empty">Chua co mon nao</p>';
@@ -902,9 +906,15 @@
             });
             h += '<div class="cart-summary"><span>Tong cong</span><strong>' + fmtPrice(total) + '</strong></div>';
         }
+        let addrOpts = '<option value="">-- Chon dia chi --</option>';
+        allAddresses.forEach(a => { addrOpts += '<option value="' + a.name.replace(/"/g, '&quot;') + '">' + a.name + '</option>'; });
+        addrOpts += '<option value="__custom">Nhap dia chi khac...</option>';
+
         h += '<form class="cart-form" onsubmit="submitOrder(event)">'
             + '<input type="text" id="customerName" placeholder="Ten cua ban" required>'
             + '<input type="text" id="customerPhone" placeholder="So dien thoai (tuy chon)">'
+            + '<select id="customerAddrSelect" onchange="toggleCustomAddr()" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:var(--radius-s);font-family:inherit;font-size:0.88rem;background:var(--surface);margin-bottom:8px">' + addrOpts + '</select>'
+            + '<input type="text" id="customerAddrCustom" placeholder="Nhap dia chi cua ban..." style="display:none">'
             + '<textarea id="customerNote" placeholder="Ghi chu..."></textarea>'
             + '<button type="submit" class="btn-submit">Dat hang</button></form></div>';
         m.innerHTML = h;
@@ -952,13 +962,29 @@
         toastT = setTimeout(() => t.classList.remove('show'), 2000);
     }
 
+    function toggleCustomAddr() {
+        const sel = document.getElementById('customerAddrSelect');
+        const custom = document.getElementById('customerAddrCustom');
+        if (sel.value === '__custom') {
+            custom.style.display = 'block';
+            custom.focus();
+        } else {
+            custom.style.display = 'none';
+            custom.value = '';
+        }
+    }
+
     // === ORDER ===
     async function submitOrder(e) {
         e.preventDefault();
         if (cart.length === 0) return;
+        const addrSel = document.getElementById('customerAddrSelect').value;
+        const addrCustom = document.getElementById('customerAddrCustom').value.trim();
+        const address = addrSel === '__custom' ? addrCustom : addrSel;
         const order = {
             customer: document.getElementById('customerName').value.trim(),
             phone: document.getElementById('customerPhone').value.trim(),
+            address: address,
             note: document.getElementById('customerNote').value.trim(),
             items: cart.map(c => ({id:c.id, name:c.name, price:c.price, qty:c.qty})),
             total: cart.reduce((s,c) => s+c.price*c.qty, 0),
