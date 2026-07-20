@@ -9,28 +9,28 @@
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
-            --orange: #f47920;
-            --orange-dark: #d4621a;
-            --orange-soft: #fff4eb;
-            --orange-glow: rgba(244,121,32,0.12);
-            --bg: #ffffff;
-            --surface: #fafafa;
-            --ink: #1a1a1a;
+            --orange: #ee4d2d;
+            --orange-dark: #d73211;
+            --orange-soft: #fff0ed;
+            --orange-glow: rgba(238,77,45,0.15);
+            --bg: #f5f5f5;
+            --surface: #ffffff;
+            --ink: #222;
             --ink-2: #555;
             --ink-3: #888;
-            --line: #eee;
-            --line-soft: #f5f5f5;
-            --radius-s: 10px;
-            --radius-m: 14px;
-            --radius-l: 18px;
-            --shadow-card: 0 2px 8px rgba(0,0,0,0.06);
-            --shadow-lift: 0 8px 28px rgba(244,121,32,0.15), 0 2px 8px rgba(0,0,0,0.06);
-            --shadow-modal: 0 -4px 32px rgba(0,0,0,0.12);
+            --line: #e8e8e8;
+            --line-soft: #f0f0f0;
+            --radius-s: 4px;
+            --radius-m: 8px;
+            --radius-l: 12px;
+            --shadow-card: 0 1px 4px rgba(0,0,0,0.08);
+            --shadow-lift: 0 4px 16px rgba(0,0,0,0.12);
+            --shadow-modal: 0 -4px 32px rgba(0,0,0,0.15);
             --z-header: 100;
             --z-modal: 300;
             --z-toast: 400;
             --z-fly: 500;
-            --transition: 200ms ease;
+            --transition: 180ms ease;
         }
 
         body {
@@ -46,12 +46,9 @@
             position: sticky;
             top: 0;
             z-index: var(--z-header);
-            background: rgba(255,255,255,0.95);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--line);
+            background: linear-gradient(135deg, #f53d2d 0%, #f63 100%);
             padding: 0 20px;
-            height: 56px;
+            height: 54px;
             display: flex;
             align-items: center;
         }
@@ -64,14 +61,14 @@
             align-items: center;
         }
         .logo {
-            font-size: 1.125rem;
-            font-weight: 700;
-            color: var(--ink);
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #fff;
             letter-spacing: -0.01em;
             cursor: default;
             user-select: none;
         }
-        .logo span { color: var(--orange); }
+        .logo span { color: #fff; }
         .header-actions {
             display: flex;
             align-items: center;
@@ -81,15 +78,15 @@
             display: none;
             padding: 6px 14px;
             border-radius: var(--radius-s);
-            background: var(--surface);
-            color: var(--ink-2);
+            background: rgba(255,255,255,0.2);
+            color: #fff;
             text-decoration: none;
             font-size: 0.8rem;
             font-weight: 600;
-            border: 1px solid var(--line);
+            border: 1px solid rgba(255,255,255,0.3);
             transition: all var(--transition);
         }
-        .btn-admin:hover { background: var(--line-soft); }
+        .btn-admin:hover { background: rgba(255,255,255,0.3); }
         .cart-btn {
             position: relative;
             background: none;
@@ -102,11 +99,11 @@
             align-items: center;
             justify-content: center;
         }
-        .cart-btn:hover { background: var(--surface); }
+        .cart-btn:hover { background: rgba(255,255,255,0.15); }
         .cart-btn svg {
             width: 22px;
             height: 22px;
-            stroke: var(--ink);
+            stroke: #fff;
             stroke-width: 1.8;
             fill: none;
             stroke-linecap: round;
@@ -143,21 +140,25 @@
         .main { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
 
         /* === MENU === */
-        .menu-section { padding: 32px 0 40px; }
+        .menu-section { padding: 20px 0 40px; }
         .menu-heading {
-            font-size: 1.5rem;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-            margin-bottom: 24px;
-            text-wrap: balance;
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            margin-bottom: 16px;
+            color: var(--orange);
+            text-transform: uppercase;
         }
         .cat-label {
-            font-size: 0.75rem;
+            font-size: 0.85rem;
             font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: var(--orange);
-            margin: 32px 0 12px;
+            letter-spacing: 0;
+            color: var(--ink);
+            margin: 28px 0 12px;
+            padding: 10px 14px;
+            background: var(--surface);
+            border-radius: var(--radius-m);
+            border-left: 3px solid var(--orange);
         }
         .cat-label:first-child { margin-top: 0; }
         .menu-grid {
@@ -168,16 +169,18 @@
 
         /* === CARD === */
         .card {
-            background: var(--bg);
+            background: var(--surface);
             border-radius: var(--radius-m);
             overflow: hidden;
             cursor: pointer;
             box-shadow: var(--shadow-card);
-            transition: box-shadow 300ms ease, transform 300ms ease;
+            transition: box-shadow 250ms ease, transform 250ms ease;
+            border: 1px solid transparent;
         }
         .card:hover {
             box-shadow: var(--shadow-lift);
-            transform: translateY(-3px);
+            transform: translateY(-2px);
+            border-color: var(--orange);
         }
         .card-img {
             height: 150px;
@@ -242,17 +245,16 @@
             background: var(--orange);
             color: #fff;
             border: none;
-            padding: 6px 12px;
-            border-radius: 20px;
+            padding: 5px 12px;
+            border-radius: var(--radius-s);
             cursor: pointer;
-            font-weight: 700;
+            font-weight: 600;
             font-size: 0.7rem;
             font-family: inherit;
-            transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
-            box-shadow: 0 2px 8px var(--orange-glow);
+            transition: background var(--transition), transform var(--transition);
         }
-        .btn-add:hover { background: var(--orange-dark); box-shadow: 0 4px 14px rgba(244,121,32,0.25); }
-        .btn-add:active { transform: scale(0.95); }
+        .btn-add:hover { background: var(--orange-dark); }
+        .btn-add:active { transform: scale(0.96); }
 
         /* === PRODUCT MODAL === */
         .overlay {
