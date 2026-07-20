@@ -118,6 +118,7 @@
             <button class="tab" onclick="switchTab('orders')">Đơn hàng</button>
             <button class="tab" onclick="switchTab('addresses')">Địa chỉ</button>
             <button class="tab" onclick="switchTab('payment')">Thanh toán</button>
+            <button class="tab" onclick="switchTab('telegram')">Telegram</button>
             <button class="tab" onclick="switchTab('notifications')">Thông báo</button>
         </div>
 
@@ -199,6 +200,25 @@
             <button class="btn-danger" onclick="deleteQR()" style="margin-top:12px">Xóa QR</button>
         </section>
 
+        <!-- Tab: Telegram -->
+        <section id="tab-telegram" class="tab-content">
+            <h2>Cài đặt Telegram</h2>
+            <p style="color:#666;font-size:0.85rem;margin-bottom:16px">Nhận thông báo đơn hàng mới qua Telegram. Tạo bot tại <strong>@BotFather</strong> trên Telegram, gửi <code>/newbot</code> để lấy token.</p>
+            <div style="display:flex;flex-direction:column;gap:12px;max-width:500px">
+                <label style="font-weight:600;font-size:0.9rem">Bot Token</label>
+                <input type="text" id="teleToken" placeholder="Dán token bot vào đây..." style="padding:10px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:0.9rem">
+                <button class="btn-secondary" onclick="getTelegramChatIdUrl()" style="align-self:flex-start">Lấy link Chat ID</button>
+                <div id="teleIdUrl" style="display:none;background:#f0f7ff;padding:12px 16px;border-radius:8px;font-size:0.85rem;word-break:break-all"></div>
+                <label style="font-weight:600;font-size:0.9rem;margin-top:8px">Chat ID</label>
+                <input type="text" id="teleChatId" placeholder="Nhập Chat ID..." style="padding:10px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:0.9rem">
+                <div style="display:flex;gap:8px">
+                    <button class="btn-primary" onclick="saveTelegram()">Lưu cài đặt</button>
+                    <button class="btn-secondary" onclick="testTelegram()">Gửi thử</button>
+                </div>
+                <div id="teleStatus" style="font-size:0.85rem;min-height:20px"></div>
+            </div>
+        </section>
+
         <!-- Tab: Notifications -->
         <section id="tab-notifications" class="tab-content">
             <h2>Thông báo</h2>
@@ -226,6 +246,7 @@
             if (name === 'orders') loadOrders();
             if (name === 'addresses') loadAddresses();
             if (name === 'payment') loadQR();
+            if (name === 'telegram') loadTelegram();
             if (name === 'notifications') loadNotifications();
         }
 
@@ -608,6 +629,55 @@
                 const time = d.createdAt ? new Date(d.createdAt.toDate()).toLocaleString('vi-VN') : '';
                 list.innerHTML += '<div class="notif-item ' + (!d.read ? 'unread' : '') + '"><span>' + d.message + '</span><small>' + time + '</small></div>';
             });
+        }
+
+        // === TELEGRAM ===
+        async function loadTelegram() {
+            const doc = await db.collection('settings').doc('telegram').get();
+            if (doc.exists) {
+                const d = doc.data();
+                document.getElementById('teleToken').value = d.token || '';
+                document.getElementById('teleChatId').value = d.chatId || '';
+            }
+        }
+        function getTelegramChatIdUrl() {
+            const token = document.getElementById('teleToken').value.trim();
+            if (!token) { alert('Vui lòng nhập token trước'); return; }
+            const url = 'https://api.telegram.org/bot' + token + '/getUpdates';
+            const div = document.getElementById('teleIdUrl');
+            div.style.display = 'block';
+            div.innerHTML = '<strong>Bước 1:</strong> Gửi tin nhắn cho bot trên Telegram<br>'
+                + '<strong>Bước 2:</strong> Mở link bên dưới, tìm <code>"chat":{"id":XXXXXXX}</code><br><br>'
+                + '<a href="' + url + '" target="_blank" style="color:#1a73e8;word-break:break-all">' + url + '</a>';
+        }
+        async function saveTelegram() {
+            const token = document.getElementById('teleToken').value.trim();
+            const chatId = document.getElementById('teleChatId').value.trim();
+            if (!token || !chatId) { alert('Vui lòng nhập đầy đủ token và chat ID'); return; }
+            await db.collection('settings').doc('telegram').set({ token, chatId });
+            document.getElementById('teleStatus').innerHTML = '<span style="color:green">✓ Đã lưu thành công!</span>';
+        }
+        async function testTelegram() {
+            const token = document.getElementById('teleToken').value.trim();
+            const chatId = document.getElementById('teleChatId').value.trim();
+            if (!token || !chatId) { alert('Vui lòng nhập đầy đủ token và chat ID'); return; }
+            const status = document.getElementById('teleStatus');
+            status.innerHTML = 'Đang gửi...';
+            try {
+                const res = await fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chat_id: chatId, text: '✅ Thông báo thử từ Quán Bán Hàng!\nBot đã kết nối thành công.' })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    status.innerHTML = '<span style="color:green">✓ Gửi thành công! Kiểm tra Telegram.</span>';
+                } else {
+                    status.innerHTML = '<span style="color:red">✗ Lỗi: ' + data.description + '</span>';
+                }
+            } catch(e) {
+                status.innerHTML = '<span style="color:red">✗ Lỗi kết nối</span>';
+            }
         }
 
         async function clearNotifications() {

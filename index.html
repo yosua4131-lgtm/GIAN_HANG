@@ -1298,9 +1298,15 @@
 
     function fmtPrice(n) { return n.toLocaleString('vi-VN'); }
 
+    let teleToken = '', teleChatId = '';
+    db.collection('settings').doc('telegram').get().then(function(doc) {
+        if (doc.exists) {
+            teleToken = doc.data().token || '';
+            teleChatId = doc.data().chatId || '';
+        }
+    });
     function sendTelegramNotify(order) {
-        const token = '8906968723:AAFKPEakZ_Rt-MwmWUfkIhOb2VyilWmOQBs';
-        const chatId = '8617147979';
+        if (!teleToken || !teleChatId) return;
         const items = order.items.map(i => '• ' + i.name + ' x' + i.qty + ' — ' + fmtPrice(i.price * i.qty) + 'đ').join('\n');
         const pay = order.payMethod === 'transfer' ? 'Chuyển khoản' : 'Tiền mặt';
         const text = '🛒 ĐƠN HÀNG MỚI!\n\n'
@@ -1311,10 +1317,10 @@
             + '💰 Tổng: ' + fmtPrice(order.total) + 'đ\n'
             + '💳 ' + pay
             + (order.note ? '\n📝 ' + order.note : '');
-        fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
+        fetch('https://api.telegram.org/bot' + teleToken + '/sendMessage', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: chatId, text: text })
+            body: JSON.stringify({ chat_id: teleChatId, text: text })
         }).catch(function() {});
     }
 
