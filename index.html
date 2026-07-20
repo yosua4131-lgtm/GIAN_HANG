@@ -1288,7 +1288,7 @@
             read: false,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        sendTelegramNotify(order);
+        sendTelegramNotify(order, docRef.id);
         cart = [];
         updateCart();
         closeCart();
@@ -1305,7 +1305,7 @@
             teleChatId = doc.data().chatId || '';
         }
     });
-    function sendTelegramNotify(order) {
+    function sendTelegramNotify(order, orderId) {
         if (!teleToken || !teleChatId) return;
         const items = order.items.map(i => '• ' + i.name + ' x' + i.qty + ' — ' + fmtPrice(i.price * i.qty) + 'đ').join('\n');
         const pay = order.payMethod === 'transfer' ? 'Chuyển khoản' : 'Tiền mặt';
@@ -1316,11 +1316,16 @@
             + '\n' + items + '\n\n'
             + '💰 Tổng: ' + fmtPrice(order.total) + 'đ\n'
             + '💳 ' + pay
-            + (order.note ? '\n📝 ' + order.note : '');
+            + (order.note ? '\n📝 ' + order.note : '')
+            + '\n\n📋 Trạng thái: Chờ xác nhận';
+        const keyboard = { inline_keyboard: [
+            [{ text: '✅ Chờ xác nhận', callback_data: orderId + ':pending' }, { text: 'Đã xác nhận', callback_data: orderId + ':confirmed' }, { text: 'Đang chuẩn bị', callback_data: orderId + ':preparing' }],
+            [{ text: 'Đang giao', callback_data: orderId + ':delivering' }, { text: 'Hoàn thành', callback_data: orderId + ':done' }, { text: 'Đã hủy', callback_data: orderId + ':cancelled' }]
+        ]};
         fetch('https://api.telegram.org/bot' + teleToken + '/sendMessage', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: teleChatId, text: text })
+            body: JSON.stringify({ chat_id: teleChatId, text: text, reply_markup: keyboard })
         }).catch(function() {});
     }
 

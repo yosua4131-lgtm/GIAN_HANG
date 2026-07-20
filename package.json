@@ -2,5 +2,8 @@
     "name": "quan-ban-hang",
     "version": "1.0.0",
     "description": "Trang bán hàng + duyệt build",
-    "private": true
+    "private": true,
+    "dependencies": {
+        "firebase-admin": "^14.2.0"
+    }
 }
