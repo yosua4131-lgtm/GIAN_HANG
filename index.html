@@ -1288,6 +1288,7 @@
             read: false,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
+        sendTelegramNotify(order);
         cart = [];
         updateCart();
         closeCart();
@@ -1296,6 +1297,26 @@
     }
 
     function fmtPrice(n) { return n.toLocaleString('vi-VN'); }
+
+    function sendTelegramNotify(order) {
+        const token = '8906968723:AAFKPEakZ_Rt-MwmWUfkIhOb2VyilWmOQBs';
+        const chatId = '8617147979';
+        const items = order.items.map(i => '• ' + i.name + ' x' + i.qty + ' — ' + fmtPrice(i.price * i.qty) + 'đ').join('\n');
+        const pay = order.payMethod === 'transfer' ? 'Chuyển khoản' : 'Tiền mặt';
+        const text = '🛒 ĐƠN HÀNG MỚI!\n\n'
+            + '👤 ' + order.customer + '\n'
+            + (order.phone ? '📞 ' + order.phone + '\n' : '')
+            + (order.address ? '📍 ' + order.address + '\n' : '')
+            + '\n' + items + '\n\n'
+            + '💰 Tổng: ' + fmtPrice(order.total) + 'đ\n'
+            + '💳 ' + pay
+            + (order.note ? '\n📝 ' + order.note : '');
+        fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: chatId, text: text })
+        }).catch(function() {});
+    }
 
     // === ORDER LOOKUP ===
     const statusLabels = {
