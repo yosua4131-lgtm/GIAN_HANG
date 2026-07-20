@@ -117,6 +117,7 @@
             <button class="tab active" onclick="switchTab('products')">Sản phẩm</button>
             <button class="tab" onclick="switchTab('orders')">Đơn hàng</button>
             <button class="tab" onclick="switchTab('addresses')">Địa chỉ</button>
+            <button class="tab" onclick="switchTab('payment')">Thanh toán</button>
             <button class="tab" onclick="switchTab('notifications')">Thông báo</button>
         </div>
 
@@ -185,6 +186,19 @@
             </div>
         </section>
 
+        <!-- Tab: Payment -->
+        <section id="tab-payment" class="tab-content">
+            <h2>Mã QR chuyển khoản</h2>
+            <div id="qrPreview" style="margin:16px 0;text-align:center">
+                <p class="loading">Đang tải...</p>
+            </div>
+            <div class="cat-add-form">
+                <input type="file" id="qrFile" accept="image/*" style="flex:1">
+                <button class="btn-primary" onclick="uploadQR()">Tải lên QR</button>
+            </div>
+            <button class="btn-danger" onclick="deleteQR()" style="margin-top:12px">Xóa QR</button>
+        </section>
+
         <!-- Tab: Notifications -->
         <section id="tab-notifications" class="tab-content">
             <h2>Thông báo</h2>
@@ -211,6 +225,7 @@
             event.target.classList.add('active');
             if (name === 'orders') loadOrders();
             if (name === 'addresses') loadAddresses();
+            if (name === 'payment') loadQR();
             if (name === 'notifications') loadNotifications();
         }
 
@@ -544,6 +559,40 @@
             if (!confirm('Xóa địa chỉ này?')) return;
             await db.collection('addresses').doc(id).delete();
             loadAddresses();
+        }
+
+        // === PAYMENT QR ===
+        async function loadQR() {
+            const preview = document.getElementById('qrPreview');
+            const doc = await db.collection('settings').doc('payment').get();
+            if (doc.exists && doc.data().qrUrl) {
+                preview.innerHTML = '<img src="' + doc.data().qrUrl + '" style="max-width:300px;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.1)">';
+            } else {
+                preview.innerHTML = '<p style="color:#999;padding:40px 0">Chưa có mã QR</p>';
+            }
+        }
+
+        async function uploadQR() {
+            const fileInput = document.getElementById('qrFile');
+            if (!fileInput.files[0]) return alert('Chọn ảnh QR trước');
+            const file = fileInput.files[0];
+            const compressed = await compressImage(file, 800, 0.85);
+            const path = 'qr/payment-qr.jpg';
+            const url = await uploadToR2(compressed, path);
+            if (url) {
+                await db.collection('settings').doc('payment').set({ qrUrl: url }, { merge: true });
+                loadQR();
+                alert('Đã tải lên QR thành công!');
+            } else {
+                alert('Lỗi tải ảnh lên!');
+            }
+            fileInput.value = '';
+        }
+
+        async function deleteQR() {
+            if (!confirm('Xóa mã QR?')) return;
+            await db.collection('settings').doc('payment').set({ qrUrl: '' }, { merge: true });
+            loadQR();
         }
 
         // === NOTIFICATIONS ===

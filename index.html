@@ -634,6 +634,62 @@
         }
         .btn-submit:hover { background: var(--orange-dark); }
 
+        /* === PAYMENT === */
+        .pay-methods { display: flex; gap: 8px; margin-bottom: 10px; }
+        .pay-opt {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid var(--line);
+            border-radius: var(--radius-s);
+            text-align: center;
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 600;
+            font-family: inherit;
+            background: var(--surface);
+            transition: all var(--transition);
+        }
+        .pay-opt.active {
+            border-color: var(--orange);
+            background: var(--orange-soft);
+            color: var(--orange);
+        }
+        .pay-opt span { display: block; font-size: 1.2rem; margin-bottom: 4px; }
+        .qr-box {
+            text-align: center;
+            padding: 16px;
+            background: var(--surface);
+            border-radius: var(--radius-m);
+            margin-bottom: 10px;
+            border: 1px dashed var(--orange);
+        }
+        .qr-box img {
+            max-width: 220px;
+            width: 100%;
+            border-radius: var(--radius-s);
+            margin-bottom: 10px;
+        }
+        .qr-box p { font-size: 0.78rem; color: var(--ink-2); margin-bottom: 10px; }
+        .btn-confirmed {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #2ecc71;
+            background: #f0fff5;
+            color: #27ae60;
+            border-radius: var(--radius-s);
+            font-size: 0.88rem;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+        .btn-confirmed:hover { background: #2ecc71; color: #fff; }
+        .btn-confirmed.done {
+            background: #2ecc71;
+            color: #fff;
+            pointer-events: none;
+        }
+
         /* === TOAST === */
         .toast {
             position: fixed;
@@ -761,16 +817,19 @@
     let allProducts = [];
     let allCategories = [];
     let allAddresses = [];
+    let qrUrl = '';
     let pmSlide = 0;
 
     // === MENU ===
     async function loadMenu() {
         const grid = document.getElementById('menuGrid');
-        const [catSnap, prodSnap, addrSnap] = await Promise.all([
+        const [catSnap, prodSnap, addrSnap, payDoc] = await Promise.all([
             db.collection('categories').orderBy('order').get(),
             db.collection('products').where('active', '==', true).get(),
-            db.collection('addresses').orderBy('order').get()
+            db.collection('addresses').orderBy('order').get(),
+            db.collection('settings').doc('payment').get()
         ]);
+        qrUrl = (payDoc.exists && payDoc.data().qrUrl) ? payDoc.data().qrUrl : '';
 
         allCategories = [];
         catSnap.forEach(doc => allCategories.push({ id: doc.id, ...doc.data() }));
@@ -915,8 +974,14 @@
             + '<input type="text" id="customerPhone" placeholder="So dien thoai (tuy chon)">'
             + '<select id="customerAddrSelect" onchange="toggleCustomAddr()" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:var(--radius-s);font-family:inherit;font-size:0.88rem;background:var(--surface);margin-bottom:8px">' + addrOpts + '</select>'
             + '<input type="text" id="customerAddrCustom" placeholder="Nhap dia chi cua ban..." style="display:none">'
+            + '<div class="pay-methods">'
+            + '<div class="pay-opt active" onclick="selectPay(\'cash\',this)"><span>💵</span>Tien mat</div>'
+            + '<div class="pay-opt" onclick="selectPay(\'transfer\',this)"><span>📱</span>Chuyen khoan</div>'
+            + '</div>'
+            + '<input type="hidden" id="payMethod" value="cash">'
+            + '<div id="qrSection" style="display:none"></div>'
             + '<textarea id="customerNote" placeholder="Ghi chu..."></textarea>'
-            + '<button type="submit" class="btn-submit">Dat hang</button></form></div>';
+            + '<button type="submit" class="btn-submit" id="submitBtn">Dat hang</button></form></div>';
         m.innerHTML = h;
     }
 
@@ -962,6 +1027,52 @@
         toastT = setTimeout(() => t.classList.remove('show'), 2000);
     }
 
+    let transferConfirmed = false;
+
+    function selectPay(method, el) {
+        document.querySelectorAll('.pay-opt').forEach(o => o.classList.remove('active'));
+        el.classList.add('active');
+        document.getElementById('payMethod').value = method;
+        transferConfirmed = false;
+        const qrSec = document.getElementById('qrSection');
+        const btn = document.getElementById('submitBtn');
+        if (method === 'transfer') {
+            if (qrUrl) {
+                qrSec.style.display = 'block';
+                qrSec.innerHTML = '<div class="qr-box">'
+                    + '<p>Quet ma QR de chuyen khoan</p>'
+                    + '<img src="' + qrUrl + '" alt="QR">'
+                    + '<button type="button" class="btn-confirmed" id="confirmTransferBtn" onclick="confirmTransfer()">Da chuyen khoan</button>'
+                    + '</div>';
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                btn.textContent = 'Vui long xac nhan chuyen khoan';
+            } else {
+                qrSec.style.display = 'block';
+                qrSec.innerHTML = '<div class="qr-box"><p>Chua co ma QR. Lien he shop de chuyen khoan.</p></div>';
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.textContent = 'Dat hang';
+            }
+        } else {
+            qrSec.style.display = 'none';
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.textContent = 'Dat hang';
+        }
+    }
+
+    function confirmTransfer() {
+        transferConfirmed = true;
+        const cb = document.getElementById('confirmTransferBtn');
+        cb.textContent = '✓ Da xac nhan chuyen khoan';
+        cb.classList.add('done');
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.textContent = 'Dat hang';
+    }
+
     function toggleCustomAddr() {
         const sel = document.getElementById('customerAddrSelect');
         const custom = document.getElementById('customerAddrCustom');
@@ -981,10 +1092,13 @@
         const addrSel = document.getElementById('customerAddrSelect').value;
         const addrCustom = document.getElementById('customerAddrCustom').value.trim();
         const address = addrSel === '__custom' ? addrCustom : addrSel;
+        const payMethod = document.getElementById('payMethod').value;
         const order = {
             customer: document.getElementById('customerName').value.trim(),
             phone: document.getElementById('customerPhone').value.trim(),
             address: address,
+            payMethod: payMethod,
+            transferConfirmed: payMethod === 'transfer' ? transferConfirmed : null,
             note: document.getElementById('customerNote').value.trim(),
             items: cart.map(c => ({id:c.id, name:c.name, price:c.price, qty:c.qty})),
             total: cart.reduce((s,c) => s+c.price*c.qty, 0),
