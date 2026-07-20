@@ -9,21 +9,22 @@
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
-            --red: #d63031;
-            --red-dark: #b71c1c;
-            --red-soft: #fdeaea;
+            --orange: #f47920;
+            --orange-dark: #d4621a;
+            --orange-soft: #fff4eb;
+            --orange-glow: rgba(244,121,32,0.12);
             --bg: #ffffff;
-            --surface: #f7f7f8;
+            --surface: #fafafa;
             --ink: #1a1a1a;
             --ink-2: #555;
-            --ink-3: #999;
-            --line: #e5e5e5;
-            --line-soft: #f0f0f0;
-            --radius-s: 8px;
-            --radius-m: 12px;
-            --radius-l: 16px;
-            --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-            --shadow-lift: 0 8px 24px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
+            --ink-3: #888;
+            --line: #eee;
+            --line-soft: #f5f5f5;
+            --radius-s: 10px;
+            --radius-m: 14px;
+            --radius-l: 18px;
+            --shadow-card: 0 2px 8px rgba(0,0,0,0.06);
+            --shadow-lift: 0 8px 28px rgba(244,121,32,0.15), 0 2px 8px rgba(0,0,0,0.06);
             --shadow-modal: 0 -4px 32px rgba(0,0,0,0.12);
             --z-header: 100;
             --z-modal: 300;
@@ -70,7 +71,7 @@
             cursor: default;
             user-select: none;
         }
-        .logo span { color: var(--red); }
+        .logo span { color: var(--orange); }
         .header-actions {
             display: flex;
             align-items: center;
@@ -119,7 +120,7 @@
             height: 16px;
             padding: 0 4px;
             border-radius: 8px;
-            background: var(--red);
+            background: var(--orange);
             color: #fff;
             font-size: 0.6rem;
             font-weight: 700;
@@ -155,7 +156,7 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.06em;
-            color: var(--red);
+            color: var(--orange);
             margin: 32px 0 12px;
         }
         .cat-label:first-child { margin-top: 0; }
@@ -168,15 +169,15 @@
         /* === CARD === */
         .card {
             background: var(--bg);
-            border: 1px solid var(--line);
             border-radius: var(--radius-m);
             overflow: hidden;
             cursor: pointer;
-            transition: box-shadow 250ms ease, transform 250ms ease;
+            box-shadow: var(--shadow-card);
+            transition: box-shadow 300ms ease, transform 300ms ease;
         }
         .card:hover {
             box-shadow: var(--shadow-lift);
-            transform: translateY(-2px);
+            transform: translateY(-3px);
         }
         .card-img {
             height: 150px;
@@ -195,29 +196,30 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transition: transform 400ms ease;
+            transition: transform 500ms ease;
         }
-        .card:hover .card-img img { transform: scale(1.04); }
+        .card:hover .card-img img { transform: scale(1.06); }
         .card-img-count {
             position: absolute;
-            bottom: 8px;
-            right: 8px;
-            background: rgba(0,0,0,0.55);
+            bottom: 6px;
+            right: 6px;
+            background: rgba(0,0,0,0.5);
             color: #fff;
-            padding: 2px 8px;
+            padding: 2px 7px;
             border-radius: 6px;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             font-weight: 600;
         }
-        .card-body { padding: 12px 14px 14px; }
+        .card-body { padding: 10px 12px 12px; }
         .card-name {
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             font-weight: 600;
             line-height: 1.3;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
+            color: var(--ink);
         }
         .card-desc {
-            font-size: 0.78rem;
+            font-size: 0.75rem;
             color: var(--ink-3);
             line-height: 1.4;
             margin-bottom: 8px;
@@ -232,24 +234,25 @@
             align-items: center;
         }
         .card-price {
-            font-size: 0.88rem;
+            font-size: 0.9rem;
             font-weight: 800;
-            color: var(--red);
+            color: var(--orange);
         }
         .btn-add {
-            background: var(--red);
+            background: var(--orange);
             color: #fff;
             border: none;
-            padding: 5px 10px;
-            border-radius: var(--radius-s);
+            padding: 6px 12px;
+            border-radius: 20px;
             cursor: pointer;
-            font-weight: 600;
-            font-size: 0.72rem;
+            font-weight: 700;
+            font-size: 0.7rem;
             font-family: inherit;
-            transition: background var(--transition), transform var(--transition);
+            transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+            box-shadow: 0 2px 8px var(--orange-glow);
         }
-        .btn-add:hover { background: var(--red-dark); }
-        .btn-add:active { transform: scale(0.96); }
+        .btn-add:hover { background: var(--orange-dark); box-shadow: 0 4px 14px rgba(244,121,32,0.25); }
+        .btn-add:active { transform: scale(0.95); }
 
         /* === PRODUCT MODAL === */
         .overlay {
@@ -380,7 +383,7 @@
         .pm-price {
             font-size: 1.3rem;
             font-weight: 800;
-            color: var(--red);
+            color: var(--orange);
             margin-bottom: 14px;
         }
         .pm-desc {
@@ -391,7 +394,7 @@
         }
         .pm-add {
             width: 100%;
-            background: var(--ink);
+            background: var(--orange);
             color: #fff;
             border: none;
             padding: 14px;
@@ -402,7 +405,7 @@
             cursor: pointer;
             transition: background var(--transition), transform var(--transition);
         }
-        .pm-add:hover { background: #333; }
+        .pm-add:hover { background: var(--orange-dark); }
         .pm-add:active { transform: scale(0.98); }
 
         /* === CART MODAL === */
@@ -499,7 +502,7 @@
             padding: 4px;
             transition: color var(--transition);
         }
-        .cart-item-del:hover { color: var(--red); }
+        .cart-item-del:hover { color: var(--orange); }
         .cart-summary {
             display: flex;
             justify-content: space-between;
@@ -531,7 +534,7 @@
         .cart-form input::placeholder, .cart-form textarea::placeholder { color: var(--ink-3); }
         .btn-submit {
             width: 100%;
-            background: var(--red);
+            background: var(--orange);
             color: #fff;
             border: none;
             padding: 14px;
@@ -543,7 +546,7 @@
             margin-top: 4px;
             transition: background var(--transition);
         }
-        .btn-submit:hover { background: var(--red-dark); }
+        .btn-submit:hover { background: var(--orange-dark); }
 
         /* === TOAST === */
         .toast {
@@ -568,7 +571,7 @@
             width: 36px;
             height: 36px;
             border-radius: 50%;
-            background: var(--red);
+            background: var(--orange);
             z-index: var(--z-fly);
             pointer-events: none;
             display: flex;
@@ -617,10 +620,10 @@
             .menu-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
             .card-img { height: 120px; }
             .card-body { padding: 8px 10px 10px; }
-            .card-name { font-size: 0.82rem; }
+            .card-name { font-size: 0.8rem; }
             .card-desc { display: none; }
-            .card-price { font-size: 0.85rem; }
-            .btn-add { padding: 5px 10px; font-size: 0.7rem; }
+            .card-price { font-size: 0.82rem; }
+            .btn-add { padding: 5px 10px; font-size: 0.68rem; }
             .menu-heading { font-size: 1.25rem; }
             .pm-img-wrap { height: 240px; }
         }
@@ -628,9 +631,9 @@
             .menu-grid { gap: 8px; }
             .card-img { height: 100px; }
             .card-body { padding: 6px 8px 8px; }
-            .card-name { font-size: 0.78rem; }
-            .card-price { font-size: 0.8rem; }
-            .btn-add { padding: 4px 8px; font-size: 0.68rem; }
+            .card-name { font-size: 0.75rem; }
+            .card-price { font-size: 0.78rem; }
+            .btn-add { padding: 4px 8px; font-size: 0.65rem; }
         }
     </style>
 </head>
