@@ -4,9 +4,232 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quán Bán Hàng</title>
-    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <style>
+        /* === HEADER CART ICON === */
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .cart-icon-btn {
+            position: relative;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+        .cart-icon-btn:hover {
+            background: var(--primary-light);
+        }
+        .cart-icon-btn svg {
+            width: 26px;
+            height: 26px;
+            fill: none;
+            stroke: var(--text);
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .cart-badge {
+            position: absolute;
+            top: 2px;
+            right: 0px;
+            background: var(--gradient);
+            color: #fff;
+            font-size: 0.65rem;
+            font-weight: 800;
+            min-width: 18px;
+            height: 18px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 4px;
+            box-shadow: 0 2px 6px rgba(230,57,70,0.4);
+            transform: scale(0);
+            transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+        .cart-badge.show {
+            transform: scale(1);
+        }
+        .cart-icon-btn.bounce {
+            animation: cartBounce 0.4s ease;
+        }
+        @keyframes cartBounce {
+            0% { transform: scale(1); }
+            30% { transform: scale(1.3); }
+            50% { transform: scale(0.9); }
+            70% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        /* === HERO BANNER === */
+        .hero {
+            background: var(--gradient);
+            border-radius: 20px;
+            padding: 32px 28px;
+            margin: 20px 0 28px;
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 200px;
+            height: 200px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -10%;
+            width: 150px;
+            height: 150px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 50%;
+        }
+        .hero h2 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 6px;
+            position: relative;
+            z-index: 1;
+        }
+        .hero p {
+            font-size: 0.92rem;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* === CATEGORY SECTION === */
+        .cat-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin: 32px 0 16px;
+            padding: 10px 16px;
+            background: linear-gradient(135deg, var(--primary-light), #fff);
+            border-radius: 12px;
+            border-left: 4px solid var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--primary-dark);
+        }
+        .cat-title:first-child { margin-top: 0; }
+
+        /* === ENHANCED MENU CARDS === */
+        .menu-item {
+            position: relative;
+            overflow: hidden;
+        }
+        .menu-item .item-img {
+            transition: transform 0.4s ease;
+        }
+        .menu-item:hover .item-img {
+            transform: scale(1.05);
+        }
+        .item-info h3 {
+            font-size: 1.05rem;
+            font-weight: 700;
+        }
+        .btn-add {
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-add::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(255,255,255,0.2);
+            transform: translateX(-100%);
+            transition: transform 0.3s;
+        }
+        .btn-add:hover::after {
+            transform: translateX(0);
+        }
+
+        /* === CART MODAL ENHANCED === */
+        .modal-content {
+            border-radius: 24px 24px 0 0;
+        }
+        .modal-header {
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        .modal-header h3 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .cart-item {
+            transition: all 0.2s;
+            border-radius: 12px;
+            padding: 14px 8px;
+            margin: 4px 0;
+        }
+        .cart-item:hover {
+            background: var(--bg);
+        }
+        .cart-item-name {
+            font-weight: 600;
+        }
+        .cart-item-controls button {
+            background: var(--card);
+            border: 1.5px solid var(--border);
+            transition: all 0.2s;
+        }
+        .cart-item-controls button:hover {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+        .cart-total {
+            background: linear-gradient(135deg, var(--primary-light), #fff);
+            border: 1.5px solid var(--primary-light);
+        }
+        .btn-order {
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            font-size: 0.95rem;
+        }
+        #orderForm input, #orderForm textarea {
+            border-radius: 14px;
+        }
+
+        /* === TOAST NOTIFICATION === */
+        .toast {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: var(--text);
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 14px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+            z-index: 500;
+            transform: translateX(120%);
+            transition: transform 0.35s cubic-bezier(0.68, -0.2, 0.27, 1.2);
+        }
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        /* === PRODUCT MODAL === */
         .product-modal {
             position: fixed;
             inset: 0;
@@ -30,7 +253,7 @@
         .pm-gallery {
             position: relative;
             width: 100%;
-            height: 280px;
+            height: 300px;
             overflow: hidden;
             background: #f5f0ec;
         }
@@ -57,14 +280,14 @@
             position: absolute;
             top: 50%;
             transform: translateY(-50%);
-            background: rgba(255,255,255,0.85);
+            background: rgba(255,255,255,0.9);
             border: none;
-            width: 36px;
-            height: 36px;
+            width: 38px;
+            height: 38px;
             border-radius: 50%;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
             z-index: 2;
             transition: all 0.2s;
         }
@@ -72,28 +295,29 @@
             background: #fff;
             transform: translateY(-50%) scale(1.1);
         }
-        .pm-gallery-nav.prev { left: 10px; }
-        .pm-gallery-nav.next { right: 10px; }
+        .pm-gallery-nav.prev { left: 12px; }
+        .pm-gallery-nav.next { right: 12px; }
         .pm-dots {
             position: absolute;
-            bottom: 10px;
+            bottom: 12px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
-            gap: 6px;
+            gap: 7px;
         }
         .pm-dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: rgba(255,255,255,0.5);
+            background: rgba(255,255,255,0.45);
             border: none;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.25s;
         }
         .pm-dot.active {
             background: #fff;
-            transform: scale(1.3);
+            transform: scale(1.4);
+            box-shadow: 0 0 6px rgba(255,255,255,0.5);
         }
         .pm-close {
             position: absolute;
@@ -102,34 +326,36 @@
             background: rgba(0,0,0,0.45);
             color: #fff;
             border: none;
-            width: 34px;
-            height: 34px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
-            font-size: 1.2rem;
+            font-size: 1.3rem;
             cursor: pointer;
             z-index: 3;
-            transition: background 0.2s;
+            transition: all 0.2s;
         }
-        .pm-close:hover { background: rgba(0,0,0,0.7); }
-        .pm-body {
-            padding: 22px 20px 28px;
-        }
+        .pm-close:hover { background: rgba(0,0,0,0.7); transform: rotate(90deg); }
+        .pm-body { padding: 24px 22px 30px; }
         .pm-name {
-            font-size: 1.3rem;
-            font-weight: 700;
-            margin-bottom: 6px;
+            font-size: 1.35rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+            line-height: 1.3;
         }
         .pm-price {
-            font-size: 1.4rem;
+            font-size: 1.5rem;
             font-weight: 800;
-            color: var(--primary);
-            margin-bottom: 14px;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 16px;
         }
         .pm-desc {
             font-size: 0.92rem;
             color: var(--text-light);
-            line-height: 1.6;
-            margin-bottom: 22px;
+            line-height: 1.7;
+            margin-bottom: 24px;
         }
         .pm-add-btn {
             width: 100%;
@@ -137,16 +363,17 @@
             color: #fff;
             border: none;
             padding: 16px;
-            border-radius: 14px;
-            font-size: 1rem;
+            border-radius: 16px;
+            font-size: 1.05rem;
             font-weight: 700;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(230,57,70,0.3);
-            transition: all 0.2s;
+            box-shadow: 0 4px 18px rgba(230,57,70,0.3);
+            transition: all 0.25s;
+            letter-spacing: 0.3px;
         }
         .pm-add-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(230,57,70,0.4);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(230,57,70,0.4);
         }
         .pm-img-count {
             position: absolute;
@@ -154,68 +381,84 @@
             left: 12px;
             background: rgba(0,0,0,0.5);
             color: #fff;
-            padding: 4px 10px;
+            padding: 4px 12px;
             border-radius: 20px;
             font-size: 0.75rem;
             font-weight: 600;
             z-index: 2;
         }
-        .cat-title {
-            font-size: 1.2rem;
-            font-weight: 700;
-            margin: 28px 0 14px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid var(--primary-light);
-            display: flex;
-            align-items: center;
-            gap: 8px;
+
+        /* === FOOTER === */
+        .shop-footer {
+            text-align: center;
+            padding: 32px 16px 24px;
+            color: var(--text-light);
+            font-size: 0.82rem;
         }
-        .cat-title:first-child { margin-top: 0; }
+
+        /* === RESPONSIVE === */
+        @media (max-width: 600px) {
+            .hero { padding: 24px 20px; }
+            .hero h2 { font-size: 1.25rem; }
+            .pm-gallery { height: 240px; }
+        }
     </style>
 </head>
 <body>
     <header class="header">
         <div class="container">
             <h1 class="logo">🍜 Quán Bán Hàng</h1>
-            <nav>
+            <div class="header-right">
                 <a href="admin.html" class="btn-admin">Admin</a>
-            </nav>
+                <button class="cart-icon-btn" id="cartIconBtn" onclick="openCart()">
+                    <svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0"/></svg>
+                    <span class="cart-badge" id="cartBadge">0</span>
+                </button>
+            </div>
         </div>
     </header>
 
     <main class="container">
+        <div class="hero">
+            <h2>Chao mung den Quan!</h2>
+            <p>Chon mon va dat hang nhanh chong</p>
+        </div>
+
         <section class="menu-section">
             <h2>Menu</h2>
             <div id="menuGrid">
-                <p class="loading">Đang tải menu...</p>
+                <p class="loading">Dang tai menu...</p>
             </div>
         </section>
+    </main>
 
-        <div id="cartFloat" class="cart-float hidden">
-            <span id="cartCount">0</span> món — <span id="cartTotal">0đ</span>
-            <button onclick="openCart()">Xem giỏ</button>
-        </div>
+    <div class="shop-footer">Quan Ban Hang &copy; 2026</div>
 
-        <div id="cartModal" class="modal hidden">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>🛒 Giỏ hàng</h3>
-                    <button class="close-btn" onclick="closeCart()">&times;</button>
-                </div>
-                <div id="cartItems" class="cart-items"></div>
-                <div class="cart-footer">
-                    <div class="cart-total">Tổng: <strong id="cartTotalModal">0đ</strong></div>
-                    <form id="orderForm" onsubmit="submitOrder(event)">
-                        <input type="text" id="customerName" placeholder="Tên bạn" required>
-                        <input type="text" id="customerPhone" placeholder="SĐT (tùy chọn)">
-                        <textarea id="customerNote" placeholder="Ghi chú (ít đá, nhiều đường...)"></textarea>
-                        <button type="submit" class="btn-order">Đặt hàng</button>
-                    </form>
-                </div>
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Cart Modal -->
+    <div id="cartModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Gio hang</h3>
+                <button class="close-btn" onclick="closeCart()">&times;</button>
+            </div>
+            <div id="cartItems" class="cart-items"></div>
+            <div class="cart-footer">
+                <div class="cart-total">Tong: <strong id="cartTotalModal">0d</strong></div>
+                <form id="orderForm" onsubmit="submitOrder(event)">
+                    <input type="text" id="customerName" placeholder="Ten ban" required>
+                    <input type="text" id="customerPhone" placeholder="SDT (tuy chon)">
+                    <textarea id="customerNote" placeholder="Ghi chu (it da, nhieu duong...)"></textarea>
+                    <button type="submit" class="btn-order">Dat hang</button>
+                </form>
             </div>
         </div>
-        <div id="productModal" class="product-modal hidden"></div>
-    </main>
+    </div>
+
+    <!-- Product Detail Modal -->
+    <div id="productModal" class="product-modal hidden"></div>
 
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -242,7 +485,7 @@
             prodSnap.forEach(doc => allProducts.push({ id: doc.id, ...doc.data() }));
 
             if (allProducts.length === 0) {
-                grid.innerHTML = '<p class="empty">Chưa có món nào trong menu</p>';
+                grid.innerHTML = '<p class="empty">Chua co mon nao trong menu</p>';
                 return;
             }
 
@@ -252,7 +495,7 @@
                 allCategories.forEach(cat => {
                     const prods = allProducts.filter(p => p.categoryId === cat.id);
                     if (prods.length === 0) return;
-                    html += '<div class="cat-title">🔥 ' + cat.name + '</div>';
+                    html += '<div class="cat-title">' + cat.name + '</div>';
                     html += '<div class="menu-grid">';
                     prods.forEach(item => { html += renderMenuItem(item); });
                     html += '</div>';
@@ -260,7 +503,7 @@
 
                 const uncategorized = allProducts.filter(p => !p.categoryId || !allCategories.find(c => c.id === p.categoryId));
                 if (uncategorized.length > 0) {
-                    if (allCategories.length > 0) html += '<div class="cat-title">📋 Khác</div>';
+                    html += '<div class="cat-title">Khac</div>';
                     html += '<div class="menu-grid">';
                     uncategorized.forEach(item => { html += renderMenuItem(item); });
                     html += '</div>';
@@ -277,22 +520,16 @@
         function renderMenuItem(item) {
             const mainImg = (item.images && item.images[0]) || item.image || '';
             const imgCount = item.images ? item.images.length : (item.image ? 1 : 0);
-            return `
-                <div class="menu-item" onclick="openProduct('${item.id}')" style="cursor:pointer">
-                    <div class="item-img" style="background-image: url('${mainImg}')">
-                        ${!mainImg ? '🍽️' : ''}
-                        ${imgCount > 1 ? '<span style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.6);color:#fff;padding:2px 8px;border-radius:12px;font-size:0.75rem">+' + (imgCount-1) + ' ảnh</span>' : ''}
-                    </div>
-                    <div class="item-info">
-                        <h3>${item.name}</h3>
-                        <p class="item-desc">${item.description || ''}</p>
-                        <div class="item-bottom">
-                            <span class="item-price">${formatPrice(item.price)}</span>
-                            <button class="btn-add" onclick="event.stopPropagation(); addToCart('${item.id}', '${item.name.replace(/'/g, "\\'")}', ${item.price})">+ Thêm</button>
-                        </div>
-                    </div>
-                </div>
-            `;
+            return '<div class="menu-item" onclick="openProduct(\'' + item.id + '\')" style="cursor:pointer">'
+                + '<div class="item-img" style="background-image: url(\'' + mainImg + '\')">'
+                + (!mainImg ? '🍽️' : '')
+                + (imgCount > 1 ? '<span style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.6);color:#fff;padding:2px 8px;border-radius:12px;font-size:0.75rem">+' + (imgCount-1) + ' anh</span>' : '')
+                + '</div>'
+                + '<div class="item-info"><h3>' + item.name + '</h3>'
+                + '<p class="item-desc">' + (item.description || '') + '</p>'
+                + '<div class="item-bottom"><span class="item-price">' + formatPrice(item.price) + '</span>'
+                + '<button class="btn-add" onclick="event.stopPropagation(); addToCart(\'' + item.id + '\', \'' + item.name.replace(/'/g, "\\'") + '\', ' + item.price + ')">+ Them</button>'
+                + '</div></div></div>';
         }
 
         function openProduct(id) {
@@ -301,30 +538,25 @@
             pmSlide = 0;
             const images = item.images || (item.image ? [item.image] : []);
             const modal = document.getElementById('productModal');
-            modal.innerHTML = `
-                <div class="pm-content">
-                    <div class="pm-gallery">
-                        <button class="pm-close" onclick="closeProduct()">&times;</button>
-                        ${images.length > 1 ? '<span class="pm-img-count">' + images.length + ' ảnh</span>' : ''}
-                        ${images.length > 0 ? `
-                            <div class="pm-gallery-track" id="pmTrack">
-                                ${images.map(img => '<img src="' + img + '">').join('')}
-                            </div>
-                            ${images.length > 1 ? `
-                                <button class="pm-gallery-nav prev" onclick="pmNav(-1)">‹</button>
-                                <button class="pm-gallery-nav next" onclick="pmNav(1)">›</button>
-                                <div class="pm-dots">${images.map((_, i) => '<button class="pm-dot' + (i === 0 ? ' active' : '') + '" onclick="pmGo(' + i + ')"></button>').join('')}</div>
-                            ` : ''}
-                        ` : '<div class="pm-gallery-empty">🍽️</div>'}
-                    </div>
-                    <div class="pm-body">
-                        <div class="pm-name">${item.name}</div>
-                        <div class="pm-price">${formatPrice(item.price)}</div>
-                        ${item.description ? '<div class="pm-desc">' + item.description + '</div>' : ''}
-                        <button class="pm-add-btn" onclick="addToCart('${item.id}', '${item.name.replace(/'/g, "\\'")}', ${item.price}); closeProduct()">🛒 Thêm vào giỏ hàng</button>
-                    </div>
-                </div>
-            `;
+            modal.innerHTML = '<div class="pm-content">'
+                + '<div class="pm-gallery">'
+                + '<button class="pm-close" onclick="closeProduct()">&times;</button>'
+                + (images.length > 1 ? '<span class="pm-img-count">' + images.length + ' anh</span>' : '')
+                + (images.length > 0
+                    ? '<div class="pm-gallery-track" id="pmTrack">' + images.map(img => '<img src="' + img + '">').join('') + '</div>'
+                      + (images.length > 1
+                        ? '<button class="pm-gallery-nav prev" onclick="pmNav(-1)">&#8249;</button>'
+                          + '<button class="pm-gallery-nav next" onclick="pmNav(1)">&#8250;</button>'
+                          + '<div class="pm-dots">' + images.map((_, i) => '<button class="pm-dot' + (i === 0 ? ' active' : '') + '" onclick="pmGo(' + i + ')"></button>').join('') + '</div>'
+                        : '')
+                    : '<div class="pm-gallery-empty">🍽️</div>')
+                + '</div>'
+                + '<div class="pm-body">'
+                + '<div class="pm-name">' + item.name + '</div>'
+                + '<div class="pm-price">' + formatPrice(item.price) + '</div>'
+                + (item.description ? '<div class="pm-desc">' + item.description + '</div>' : '')
+                + '<button class="pm-add-btn" onclick="addToCart(\'' + item.id + '\', \'' + item.name.replace(/'/g, "\\'") + '\', ' + item.price + '); closeProduct()">🛒 Them vao gio hang</button>'
+                + '</div></div>';
             modal.classList.remove('hidden');
             modal.onclick = function(e) { if (e.target === modal) closeProduct(); };
         }
@@ -358,6 +590,12 @@
                 cart.push({ id, name, price, qty: 1 });
             }
             updateCartUI();
+            showToast('Da them ' + name);
+
+            const btn = document.getElementById('cartIconBtn');
+            btn.classList.remove('bounce');
+            void btn.offsetWidth;
+            btn.classList.add('bounce');
         }
 
         function removeFromCart(id) {
@@ -378,27 +616,28 @@
             const count = cart.reduce((s, c) => s + c.qty, 0);
             const total = cart.reduce((s, c) => s + c.price * c.qty, 0);
 
-            document.getElementById('cartCount').textContent = count;
-            document.getElementById('cartTotal').textContent = formatPrice(total);
+            const badge = document.getElementById('cartBadge');
+            badge.textContent = count;
+            badge.classList.toggle('show', count > 0);
+
             document.getElementById('cartTotalModal').textContent = formatPrice(total);
-            document.getElementById('cartFloat').classList.toggle('hidden', count === 0);
 
             const cartItems = document.getElementById('cartItems');
             if (cart.length === 0) {
-                cartItems.innerHTML = '<p class="empty">Giỏ hàng trống</p>';
+                cartItems.innerHTML = '<p class="empty">Gio hang trong</p>';
             } else {
-                cartItems.innerHTML = cart.map(c => `
-                    <div class="cart-item">
-                        <span class="cart-item-name">${c.name}</span>
-                        <div class="cart-item-controls">
-                            <button onclick="changeQty('${c.id}', -1)">−</button>
-                            <span>${c.qty}</span>
-                            <button onclick="changeQty('${c.id}', 1)">+</button>
-                        </div>
-                        <span class="cart-item-price">${formatPrice(c.price * c.qty)}</span>
-                        <button class="btn-remove" onclick="removeFromCart('${c.id}')">&times;</button>
-                    </div>
-                `).join('');
+                cartItems.innerHTML = cart.map(c =>
+                    '<div class="cart-item">'
+                    + '<span class="cart-item-name">' + c.name + '</span>'
+                    + '<div class="cart-item-controls">'
+                    + '<button onclick="changeQty(\'' + c.id + '\', -1)">-</button>'
+                    + '<span>' + c.qty + '</span>'
+                    + '<button onclick="changeQty(\'' + c.id + '\', 1)">+</button>'
+                    + '</div>'
+                    + '<span class="cart-item-price">' + formatPrice(c.price * c.qty) + '</span>'
+                    + '<button class="btn-remove" onclick="removeFromCart(\'' + c.id + '\')">&times;</button>'
+                    + '</div>'
+                ).join('');
             }
         }
 
@@ -410,9 +649,18 @@
             document.getElementById('cartModal').classList.add('hidden');
         }
 
+        let toastTimer;
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = '✓ ' + msg;
+            t.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+        }
+
         async function submitOrder(e) {
             e.preventDefault();
-            if (cart.length === 0) return alert('Giỏ hàng trống!');
+            if (cart.length === 0) return alert('Gio hang trong!');
 
             const order = {
                 customer: document.getElementById('customerName').value.trim(),
@@ -427,7 +675,7 @@
             await db.collection('orders').add(order);
             await db.collection('notifications').add({
                 type: 'new_order',
-                message: `Đơn mới từ ${order.customer} - ${formatPrice(order.total)}`,
+                message: 'Don moi tu ' + order.customer + ' - ' + formatPrice(order.total),
                 read: false,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
@@ -436,11 +684,11 @@
             updateCartUI();
             closeCart();
             document.getElementById('orderForm').reset();
-            alert('Đặt hàng thành công! Cảm ơn bạn 🎉');
+            showToast('Dat hang thanh cong! 🎉');
         }
 
         function formatPrice(n) {
-            return n.toLocaleString('vi-VN') + 'đ';
+            return n.toLocaleString('vi-VN') + 'd';
         }
 
         loadMenu();
