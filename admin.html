@@ -121,6 +121,7 @@
             <button class="tab" onclick="switchTab('addresses')">Địa chỉ</button>
             <button class="tab" onclick="switchTab('payment')">Thanh toán</button>
             <button class="tab" onclick="switchTab('telegram')">Telegram</button>
+            <button class="tab" onclick="switchTab('zalo')">Zalo</button>
             <button class="tab" onclick="switchTab('notifications')">Thông báo</button>
         </div>
 
@@ -221,6 +222,20 @@
             </div>
         </section>
 
+        <!-- Tab: Zalo -->
+        <section id="tab-zalo" class="tab-content">
+            <h2>Cài đặt Zalo</h2>
+            <p style="color:#666;font-size:0.85rem;margin-bottom:16px">Hiện nút chat Zalo ở góc dưới trang khách hàng. Dán link Zalo cá nhân hoặc OA.</p>
+            <div style="margin-bottom:12px">
+                <label style="font-weight:600;display:block;margin-bottom:4px">Link Zalo</label>
+                <input type="text" id="zaloLink" placeholder="https://zalo.me/0901234567" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:0.9rem">
+            </div>
+            <div style="display:flex;gap:8px">
+                <button class="btn-primary" onclick="saveZalo()">Lưu</button>
+            </div>
+            <p id="zaloStatus" style="margin-top:8px;font-size:0.85rem"></p>
+        </section>
+
         <!-- Tab: Notifications -->
         <section id="tab-notifications" class="tab-content">
             <h2>Thông báo</h2>
@@ -252,6 +267,7 @@
             if (name === 'addresses') loadAddresses();
             if (name === 'payment') loadQR();
             if (name === 'telegram') loadTelegram();
+            if (name === 'zalo') loadZalo();
             if (name === 'notifications') loadNotifications();
         }
 
@@ -693,6 +709,19 @@
         }
 
         // === TELEGRAM ===
+        async function loadZalo() {
+            const doc = await db.collection('settings').doc('zalo').get();
+            if (doc.exists) {
+                document.getElementById('zaloLink').value = doc.data().link || '';
+            }
+        }
+
+        async function saveZalo() {
+            const link = document.getElementById('zaloLink').value.trim();
+            await db.collection('settings').doc('zalo').set({ link: link });
+            document.getElementById('zaloStatus').innerHTML = '<span style="color:green">✓ Đã lưu</span>';
+        }
+
         async function loadTelegram() {
             const doc = await db.collection('settings').doc('telegram').get();
             if (doc.exists) {
