@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="admin.css">
     <style>
+        .order-status-icon { font-size: 1.4rem; margin-right: 8px; }
+        .order-header { display: flex; align-items: center; }
         .cat-section { margin-bottom: 28px; }
         .cat-header {
             display: flex;
@@ -526,18 +528,20 @@
                 const d = doc.data();
                 const time = d.createdAt ? new Date(d.createdAt.toDate()).toLocaleString('vi-VN') : '';
                 const items = d.items.map(i => i.name + ' x' + i.qty).join(', ');
+                const statusIcon = { pending: '🕐', confirmed: '✅', preparing: '👨‍🍳', delivering: '🚚', done: '🎉', cancelled: '❌' };
+                const icon = statusIcon[d.status] || '📋';
                 list.innerHTML += '<div class="order-card">'
-                    + '<div class="order-header"><strong>' + d.customer + '</strong><span class="order-time">' + time + '</span></div>'
+                    + '<div class="order-header"><span class="order-status-icon">' + icon + '</span><strong>' + d.customer + '</strong><span class="order-time">' + time + '</span></div>'
                     + '<p class="order-items">' + items + '</p>'
                     + (d.note ? '<p class="order-note">📝 ' + d.note + '</p>' : '')
                     + '<div class="order-footer"><span class="order-total">' + formatPrice(d.total) + '</span>'
                     + '<select onchange="updateOrderStatus(\'' + doc.id + '\', this.value)">'
-                    + '<option value="pending"' + (d.status === 'pending' ? ' selected' : '') + '>Chờ xác nhận</option>'
-                    + '<option value="confirmed"' + (d.status === 'confirmed' ? ' selected' : '') + '>Đã xác nhận</option>'
-                    + '<option value="preparing"' + (d.status === 'preparing' ? ' selected' : '') + '>Đang chuẩn bị</option>'
-                    + '<option value="delivering"' + (d.status === 'delivering' ? ' selected' : '') + '>Đang giao</option>'
-                    + '<option value="done"' + (d.status === 'done' ? ' selected' : '') + '>Hoàn thành</option>'
-                    + '<option value="cancelled"' + (d.status === 'cancelled' ? ' selected' : '') + '>Đã hủy</option>'
+                    + '<option value="pending"' + (d.status === 'pending' ? ' selected' : '') + '>🕐 Chờ xác nhận</option>'
+                    + '<option value="confirmed"' + (d.status === 'confirmed' ? ' selected' : '') + '>✅ Đã xác nhận</option>'
+                    + '<option value="preparing"' + (d.status === 'preparing' ? ' selected' : '') + '>👨‍🍳 Đang chuẩn bị</option>'
+                    + '<option value="delivering"' + (d.status === 'delivering' ? ' selected' : '') + '>🚚 Đang giao</option>'
+                    + '<option value="done"' + (d.status === 'done' ? ' selected' : '') + '>🎉 Hoàn thành</option>'
+                    + '<option value="cancelled"' + (d.status === 'cancelled' ? ' selected' : '') + '>❌ Đã hủy</option>'
                     + '</select>'
                     + '<button class="btn-danger" onclick="deleteOrder(\'' + doc.id + '\')" style="margin-left:8px;padding:4px 10px;font-size:0.8rem">Xóa</button>'
                     + '</div></div>';
