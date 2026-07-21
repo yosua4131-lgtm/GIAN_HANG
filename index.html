@@ -93,12 +93,12 @@
             background: none;
             border: none;
             cursor: pointer;
-            padding: 8px;
+            padding: 6px 10px;
             border-radius: var(--radius-s);
             transition: background var(--transition);
             display: flex;
             align-items: center;
-            justify-content: center;
+            gap: 4px;
         }
         .cart-btn:hover { background: rgba(255,255,255,0.15); }
         .cart-btn svg {
@@ -786,14 +786,23 @@
         }
 
         /* === ORDER LOOKUP === */
+        .header-btn-label {
+            color: #fff;
+            font-size: 0.72rem;
+            font-weight: 600;
+        }
         .order-lookup-btn {
             background: none;
             border: none;
             cursor: pointer;
-            padding: 4px;
+            padding: 6px 10px;
             display: flex;
             align-items: center;
+            gap: 4px;
+            border-radius: var(--radius-s);
+            transition: background var(--transition);
         }
+        .order-lookup-btn:hover { background: rgba(255,255,255,0.15); }
         .order-lookup-btn svg {
             width: 24px;
             height: 24px;
@@ -906,9 +915,11 @@
             <a href="admin.html" class="btn-admin" id="adminBtn">Admin</a>
             <button class="order-lookup-btn" onclick="openLookup()" title="Tra cứu đơn hàng">
                 <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
+                <span class="header-btn-label">Tra cứu</span>
             </button>
             <button class="cart-btn" id="cartBtn" onclick="openCart()">
                 <svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+                <span class="header-btn-label">Giỏ hàng</span>
                 <span class="cart-badge" id="cartBadge">0</span>
             </button>
         </div>
