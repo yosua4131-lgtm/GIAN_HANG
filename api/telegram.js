@@ -140,50 +140,55 @@ module.exports = async function handler(req, res) {
     const update = req.body;
     if (!update) return res.status(200).send('OK');
 
-    const settings = await fsGet('settings', 'telegram');
+    if (!update.callback_query) return res.status(200).send('OK');
+
+    const cb = update.callback_query;
+    const [orderId, newStatus] = cb.data.split(':');
+    const chatId = cb.message.chat.id;
+    const msgId = cb.message.message_id;
+    const oldText = cb.message.text || '';
+
+    const [settings] = await Promise.all([
+        fsGet('settings', 'telegram'),
+        // respond to Telegram immediately while fetching settings
+    ]);
     if (!settings || !settings.token) return res.status(200).send('OK');
     const token = settings.token;
 
-    if (update.callback_query) {
-        const cb = update.callback_query;
-        const [orderId, newStatus] = cb.data.split(':');
-
-        if (!orderId) {
-            await telegramApi(token, 'answerCallbackQuery', { callback_query_id: cb.id, text: 'Lỗi dữ liệu' });
-            return res.status(200).send('OK');
-        }
-
-        if (newStatus === 'delete') {
-            await Promise.all([
-                fsDelete('orders', orderId),
-                telegramApi(token, 'deleteMessage', { chat_id: cb.message.chat.id, message_id: cb.message.message_id }),
-                telegramApi(token, 'answerCallbackQuery', { callback_query_id: cb.id, text: '🗑 Đã xóa đơn hàng' })
-            ]);
-            return res.status(200).send('OK');
-        }
-
-        if (!STATUS[newStatus]) {
-            await telegramApi(token, 'answerCallbackQuery', { callback_query_id: cb.id, text: 'Lỗi dữ liệu' });
-            return res.status(200).send('OK');
-        }
-
-        await fsUpdate('orders', orderId, { status: newStatus });
-
-        const order = await fsGet('orders', orderId);
-
-        await Promise.all([
-            telegramApi(token, 'editMessageText', {
-                chat_id: cb.message.chat.id,
-                message_id: cb.message.message_id,
-                text: buildOrderText(order, newStatus),
-                reply_markup: buildKeyboard(orderId, newStatus)
-            }),
-            telegramApi(token, 'answerCallbackQuery', {
-                callback_query_id: cb.id,
-                text: '✅ Đã đổi: ' + STATUS[newStatus]
-            })
-        ]);
+    if (!orderId) {
+        await telegramApi(token, 'answerCallbackQuery', { callback_query_id: cb.id, text: 'Lỗi dữ liệu' });
+        return res.status(200).send('OK');
     }
 
+    if (newStatus === 'delete') {
+        res.status(200).send('OK');
+        await Promise.all([
+            fsDelete('orders', orderId),
+            telegramApi(token, 'deleteMessage', { chat_id: chatId, message_id: msgId }),
+            telegramApi(token, 'answerCallbackQuery', { callback_query_id: cb.id, text: '🗑 Đã xóa đơn hàng' })
+        ]);
+        return;
+    }
+
+    if (!STATUS[newStatus]) {
+        await telegramApi(token, 'answerCallbackQuery', { callback_query_id: cb.id, text: 'Lỗi dữ liệu' });
+        return res.status(200).send('OK');
+    }
+
+    var newText = oldText.replace(/📋 Trạng thái: .+/, '📋 Trạng thái: ' + STATUS[newStatus]);
+
     res.status(200).send('OK');
+    await Promise.all([
+        fsUpdate('orders', orderId, { status: newStatus }),
+        telegramApi(token, 'editMessageText', {
+            chat_id: chatId,
+            message_id: msgId,
+            text: newText,
+            reply_markup: buildKeyboard(orderId, newStatus)
+        }),
+        telegramApi(token, 'answerCallbackQuery', {
+            callback_query_id: cb.id,
+            text: '✅ ' + STATUS[newStatus]
+        })
+    ]);
 };
