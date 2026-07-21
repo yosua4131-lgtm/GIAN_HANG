@@ -225,10 +225,10 @@
         <!-- Tab: Zalo -->
         <section id="tab-zalo" class="tab-content">
             <h2>Cài đặt Zalo</h2>
-            <p style="color:#666;font-size:0.85rem;margin-bottom:16px">Hiện nút chat Zalo ở góc dưới trang khách hàng. Dán link Zalo cá nhân hoặc OA.</p>
+            <p style="color:#666;font-size:0.85rem;margin-bottom:16px">Hiện nút chat Zalo ở góc dưới trang khách hàng.</p>
             <div style="margin-bottom:12px">
-                <label style="font-weight:600;display:block;margin-bottom:4px">Link Zalo</label>
-                <input type="text" id="zaloLink" placeholder="https://zalo.me/0901234567" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:0.9rem">
+                <label style="font-weight:600;display:block;margin-bottom:4px">Số điện thoại Zalo</label>
+                <input type="text" id="zaloLink" placeholder="0901234567" style="width:100%;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:0.9rem">
             </div>
             <div style="display:flex;gap:8px">
                 <button class="btn-primary" onclick="saveZalo()">Lưu</button>
@@ -712,13 +712,14 @@
         async function loadZalo() {
             const doc = await db.collection('settings').doc('zalo').get();
             if (doc.exists) {
-                document.getElementById('zaloLink').value = doc.data().link || '';
+                document.getElementById('zaloLink').value = doc.data().phone || '';
             }
         }
 
         async function saveZalo() {
-            const link = document.getElementById('zaloLink').value.trim();
-            await db.collection('settings').doc('zalo').set({ link: link });
+            const phone = document.getElementById('zaloLink').value.trim();
+            const link = 'https://zalo.me/' + phone;
+            await db.collection('settings').doc('zalo').set({ phone: phone, link: link });
             document.getElementById('zaloStatus').innerHTML = '<span style="color:green">✓ Đã lưu</span>';
         }
 
