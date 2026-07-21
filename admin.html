@@ -548,8 +548,39 @@
             });
         }
 
+        const statusLabel = { pending: 'Chờ xác nhận', confirmed: 'Đã xác nhận', preparing: 'Đang chuẩn bị', delivering: 'Đang giao', done: 'Hoàn thành', cancelled: 'Đã hủy' };
+
         async function updateOrderStatus(id, status) {
             await db.collection('orders').doc(id).update({ status });
+            loadOrders();
+            const doc = await db.collection('orders').doc(id).get();
+            const d = doc.data();
+            if (d && d.telegramMsgId && d.telegramChatId) {
+                const settingsDoc = await db.collection('settings').doc('telegram').get();
+                if (settingsDoc.exists) {
+                    const t = settingsDoc.data().token;
+                    if (t) {
+                        const items = d.items.map(function(i) { return '• ' + i.name + ' x' + i.qty + ' — ' + formatPrice(i.price * i.qty) + 'đ'; }).join('\n');
+                        const pay = d.payMethod === 'transfer' ? 'Chuyển khoản' : 'Tiền mặt';
+                        const text = '🛒 ĐƠN HÀNG MỚI!\n\n👤 ' + d.customer + '\n'
+                            + (d.phone ? '📞 ' + d.phone + '\n' : '')
+                            + (d.address ? '📍 ' + d.address + '\n' : '')
+                            + '\n' + items + '\n\n💰 Tổng: ' + formatPrice(d.total) + 'đ\n💳 ' + pay
+                            + (d.note ? '\n📝 ' + d.note : '')
+                            + '\n\n📋 Trạng thái: ' + statusLabel[status];
+                        const keyboard = { inline_keyboard: [
+                            [{ text: (status === 'pending' ? '✅ ' : '') + 'Chờ xác nhận', callback_data: id + ':pending' }, { text: (status === 'confirmed' ? '✅ ' : '') + 'Đã xác nhận', callback_data: id + ':confirmed' }, { text: (status === 'preparing' ? '✅ ' : '') + 'Đang chuẩn bị', callback_data: id + ':preparing' }],
+                            [{ text: (status === 'delivering' ? '✅ ' : '') + 'Đang giao', callback_data: id + ':delivering' }, { text: (status === 'done' ? '✅ ' : '') + 'Hoàn thành', callback_data: id + ':done' }, { text: (status === 'cancelled' ? '✅ ' : '') + 'Đã hủy', callback_data: id + ':cancelled' }],
+                            [{ text: '🗑 Xóa đơn', callback_data: id + ':delete' }]
+                        ]};
+                        fetch('https://api.telegram.org/bot' + t + '/editMessageText', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ chat_id: d.telegramChatId, message_id: d.telegramMsgId, text: text, reply_markup: keyboard })
+                        }).catch(function() {});
+                    }
+                }
+            }
         }
 
         async function deleteOrder(id) {
