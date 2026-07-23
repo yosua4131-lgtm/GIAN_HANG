@@ -1363,12 +1363,37 @@
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         sendTelegramNotify(order, docRef.id);
+        var isTransfer = payMethod === 'transfer';
         cart = [];
         selectedAddons = {};
         updateCart();
         closeCart();
         const shortId = docRef.id.slice(-6).toUpperCase();
-        showToast('Đặt hàng thành công! Mã đơn: ' + shortId, 5000);
+        if (isTransfer && zaloLink) {
+            showTransferReminder(shortId);
+        } else {
+            showToast('Đặt hàng thành công! Mã đơn: ' + shortId, 5000);
+        }
+    }
+
+    function showTransferReminder(shortId) {
+        var overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+        overlay.innerHTML = '<div style="background:#fff;border-radius:16px;padding:28px 24px;max-width:360px;width:100%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.2)">'
+            + '<div style="font-size:2.5rem;margin-bottom:8px">✅</div>'
+            + '<h3 style="font-size:1.1rem;margin-bottom:4px">Đặt hàng thành công!</h3>'
+            + '<p style="font-size:0.85rem;color:#666;margin-bottom:16px">Mã đơn: <strong>' + shortId + '</strong></p>'
+            + '<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:14px;margin-bottom:16px">'
+            + '<p style="font-size:0.9rem;font-weight:600;margin-bottom:4px">📸 Chụp bill chuyển khoản</p>'
+            + '<p style="font-size:0.85rem;color:#555">Gửi bill qua Zalo cho cô nhé!</p>'
+            + '</div>'
+            + '<a href="' + zaloLink + '" target="_blank" style="display:inline-flex;align-items:center;gap:8px;background:#0068ff;color:#fff;padding:12px 28px;border-radius:12px;font-size:1rem;font-weight:700;text-decoration:none">'
+            + '<img src="https://upload.wikimedia.org/wikipedia/commons/9/91/Icon_of_Zalo.svg" alt="Zalo" style="width:24px;height:24px;filter:brightness(10)">'
+            + 'Gửi qua Zalo</a>'
+            + '<button onclick="this.closest(\'div\').parentElement.remove()" style="display:block;margin:14px auto 0;background:none;border:none;color:#999;font-size:0.85rem;cursor:pointer">Đóng</button>'
+            + '</div>';
+        document.body.appendChild(overlay);
+        overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
     }
 
     function fmtPrice(n) { return n.toLocaleString('vi-VN'); }
@@ -1380,10 +1405,12 @@
             teleChatId = doc.data().chatId || '';
         }
     });
+    let zaloLink = '';
     db.collection('settings').doc('zalo').get().then(function(doc) {
         if (doc.exists && doc.data().link) {
+            zaloLink = doc.data().link;
             var fab = document.getElementById('zaloFab');
-            fab.href = doc.data().link;
+            fab.href = zaloLink;
             fab.style.display = 'flex';
         }
     });
