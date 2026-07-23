@@ -576,7 +576,10 @@
             const icon = statusIcon[d.status] || '📋';
             return '<div class="order-card">'
                 + '<div class="order-header"><span class="order-status-icon">' + icon + '</span><strong>' + d.customer + '</strong><span class="order-time">' + time + '</span></div>'
+                + (d.phone ? '<div style="font-size:0.85rem;color:#555;margin-bottom:2px">📞 ' + d.phone + '</div>' : '')
+                + (d.address ? '<div style="font-size:0.85rem;color:#555;margin-bottom:4px">📍 ' + d.address + '</div>' : '')
                 + '<div class="order-items">' + itemsHtml + '</div>'
+                + '<div style="font-size:0.85rem;color:#555;margin:4px 0">💳 ' + (d.payMethod === 'transfer' ? 'Chuyển khoản' : 'Tiền mặt') + '</div>'
                 + (d.note ? '<p class="order-note">📝 ' + d.note + '</p>' : '')
                 + '<div class="order-footer"><span class="order-total">' + formatPrice(d.total) + '</span>'
                 + '<select onchange="updateOrderStatus(\'' + id + '\', this.value)">'
