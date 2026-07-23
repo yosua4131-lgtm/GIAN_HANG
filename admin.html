@@ -560,11 +560,23 @@
 
         function renderOrderCard(id, d) {
             const time = d.createdAt ? new Date(d.createdAt.toDate()).toLocaleString('vi-VN') : '';
-            const items = d.items.map(i => i.name + ' x' + i.qty).join(', ');
+            var mainItems = (d.items || []).filter(function(i){return !i.addon;});
+            var addonItems = (d.items || []).filter(function(i){return i.addon;});
+            var grouped = {};
+            mainItems.forEach(function(i) { var cat = i.category || ''; if (!grouped[cat]) grouped[cat] = []; grouped[cat].push(i); });
+            var itemsHtml = '';
+            Object.keys(grouped).forEach(function(cat) {
+                if (cat) itemsHtml += '<div style="font-weight:600;font-size:0.8rem;color:var(--orange);margin-top:4px">📂 ' + cat + '</div>';
+                grouped[cat].forEach(function(i) { itemsHtml += '<div style="font-size:0.85rem;padding-left:' + (cat?'12':'0') + 'px">• ' + i.name + ' x' + i.qty + ' — ' + formatPrice(i.price * i.qty) + '</div>'; });
+            });
+            if (addonItems.length) {
+                itemsHtml += '<div style="font-weight:600;font-size:0.8rem;color:#16a34a;margin-top:4px">🥢 Món thêm</div>';
+                addonItems.forEach(function(i) { itemsHtml += '<div style="font-size:0.85rem;padding-left:12px">• ' + i.name + ' x' + i.qty + (i.price > 0 ? ' — ' + formatPrice(i.price * i.qty) : '') + '</div>'; });
+            }
             const icon = statusIcon[d.status] || '📋';
             return '<div class="order-card">'
                 + '<div class="order-header"><span class="order-status-icon">' + icon + '</span><strong>' + d.customer + '</strong><span class="order-time">' + time + '</span></div>'
-                + '<p class="order-items">' + items + '</p>'
+                + '<div class="order-items">' + itemsHtml + '</div>'
                 + (d.note ? '<p class="order-note">📝 ' + d.note + '</p>' : '')
                 + '<div class="order-footer"><span class="order-total">' + formatPrice(d.total) + '</span>'
                 + '<select onchange="updateOrderStatus(\'' + id + '\', this.value)">'
@@ -623,7 +635,7 @@
                 var addrOrders = grouped[addr.name];
                 if (!addrOrders || !addrOrders.length) return;
                 html += '<div style="margin-bottom:20px">'
-                    + '<h3 style="background:var(--orange);color:#fff;padding:10px 16px;border-radius:8px;margin-bottom:8px">📍 ' + num + '. ' + addr.name + ' (' + addrOrders.length + ' đơn)</h3>';
+                    + '<h3 style="background:#c0392b;color:#fff;padding:10px 16px;border-radius:8px;margin-bottom:8px;font-size:1rem">📍 ' + num + '. ' + addr.name + ' (' + addrOrders.length + ' đơn)</h3>';
                 addrOrders.forEach(function(o) { html += renderOrderCard(o.id, o); });
                 html += '</div>';
                 num++;
@@ -631,7 +643,7 @@
 
             if (noAddr.length) {
                 html += '<div style="margin-bottom:20px">'
-                    + '<h3 style="background:#999;color:#fff;padding:10px 16px;border-radius:8px;margin-bottom:8px">📍 Chưa có địa chỉ (' + noAddr.length + ' đơn)</h3>';
+                    + '<h3 style="background:#666;color:#fff;padding:10px 16px;border-radius:8px;margin-bottom:8px;font-size:1rem">📍 Chưa có địa chỉ (' + noAddr.length + ' đơn)</h3>';
                 noAddr.forEach(function(o) { html += renderOrderCard(o.id, o); });
                 html += '</div>';
             }
