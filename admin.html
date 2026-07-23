@@ -177,6 +177,7 @@
             <div style="display:flex;gap:8px;margin-bottom:12px">
                 <button class="btn-secondary" id="btnOrderNormal" onclick="loadOrders()" style="font-weight:700">Mới nhất</button>
                 <button class="btn-secondary" id="btnOrderGroup" onclick="loadOrdersGrouped()">Gom theo địa chỉ</button>
+                <button class="btn-danger" onclick="deleteAllOrders()" style="margin-left:auto">Xóa tất cả đơn</button>
             </div>
             <div id="orderList" class="order-list">
                 <p class="loading">Đang tải...</p>
@@ -691,6 +692,27 @@
                 }
             }
             await db.collection('orders').doc(id).delete();
+            loadOrders();
+        }
+
+        async function deleteAllOrders() {
+            if (!confirm('Xóa TẤT CẢ đơn hàng? Không thể hoàn tác!')) return;
+            const snap = await db.collection('orders').get();
+            if (snap.empty) return;
+            const settingsDoc = await db.collection('settings').doc('telegram').get();
+            const teleToken = settingsDoc.exists ? settingsDoc.data().token : '';
+            const promises = [];
+            snap.forEach(doc => {
+                const d = doc.data();
+                if (teleToken && d.telegramMsgId && d.telegramChatId) {
+                    promises.push(fetch('https://api.telegram.org/bot' + teleToken + '/deleteMessage', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ chat_id: d.telegramChatId, message_id: d.telegramMsgId })
+                    }).catch(function() {}));
+                }
+                promises.push(db.collection('orders').doc(doc.id).delete());
+            });
+            await Promise.all(promises);
             loadOrders();
         }
 
