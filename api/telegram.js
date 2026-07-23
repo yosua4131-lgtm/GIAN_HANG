@@ -125,6 +125,40 @@ function buildOrderText(order, status) {
         + '\n\n📋 Trạng thái: ' + STATUS[status];
 }
 
+async function fsQuery(collection, filters) {
+    const token = await getAccessToken();
+    const body = { structuredQuery: { from: [{ collectionId: collection }] } };
+    if (filters && filters.length) {
+        body.structuredQuery.where = { compositeFilter: { op: 'AND', filters: filters.map(f => ({
+            fieldFilter: { field: { fieldPath: f.field }, op: f.op, value: { stringValue: f.value } }
+        })) } };
+    }
+    const res = await fetch(FIRESTORE + ':runQuery', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    return (data || []).filter(d => d.document).map(d => ({
+        id: d.document.name.split('/').pop(),
+        ...parseDoc(d.document.fields)
+    }));
+}
+
+async function fsListAll(collection) {
+    const token = await getAccessToken();
+    const res = await fetch(FIRESTORE + '/' + collection + '?pageSize=100', {
+        headers: { 'Authorization': 'Bearer ' + token }
+    });
+    const data = await res.json();
+    return (data.documents || []).map(d => ({
+        id: d.name.split('/').pop(),
+        ...parseDoc(d.fields)
+    }));
+}
+
+const STATUS_ICON = { pending: '🕐', confirmed: '✅', preparing: '👨‍🍳', delivering: '🚚', done: '🎉', cancelled: '❌' };
+
 async function telegramApi(token, method, body) {
     const res = await fetch('https://api.telegram.org/bot' + token + '/' + method, {
         method: 'POST',
@@ -139,6 +173,111 @@ module.exports = async function handler(req, res) {
 
     const update = req.body;
     if (!update) return res.status(200).send('OK');
+
+    if (update.message && update.message.text) {
+        const chatId = update.message.chat.id;
+        const text = update.message.text.trim();
+
+        if (text === '/gom') {
+            const settings = await fsGet('settings', 'telegram');
+            if (!settings || !settings.token) return res.status(200).send('OK');
+            const token = settings.token;
+
+            const [orders, addresses] = await Promise.all([
+                fsListAll('orders'),
+                fsListAll('addresses')
+            ]);
+
+            if (!orders.length) {
+                await telegramApi(token, 'sendMessage', { chat_id: chatId, text: '📦 Không có đơn hàng nào.' });
+                return res.status(200).send('OK');
+            }
+
+            addresses.sort(function(a, b) { return (a.order || 0) - (b.order || 0); });
+            var addrMap = {};
+            addresses.forEach(function(a) { addrMap[a.name] = a; });
+
+            var grouped = {};
+            var noAddr = [];
+            orders.forEach(function(o) {
+                if (o.address && addrMap[o.address]) {
+                    if (!grouped[o.address]) grouped[o.address] = [];
+                    grouped[o.address].push(o);
+                } else {
+                    noAddr.push(o);
+                }
+            });
+
+            var num = 1;
+            var promises = [];
+
+            addresses.forEach(function(addr) {
+                var list = grouped[addr.name];
+                if (!list || !list.length) return;
+
+                list.forEach(function(o) {
+                    var icon = STATUS_ICON[o.status] || '📋';
+                    var items = (o.items || []).map(function(i) { return '• ' + i.name + ' x' + i.qty + ' — ' + fmtPrice(i.price * i.qty) + 'đ'; }).join('\n');
+                    var pay = o.payMethod === 'transfer' ? 'Chuyển khoản' : 'Tiền mặt';
+                    var orderText = '📍 ' + num + '. ' + addr.name + '\n━━━━━━━━━━━━\n\n'
+                        + icon + ' ' + o.customer + '\n'
+                        + (o.phone ? '📞 ' + o.phone + '\n' : '')
+                        + '\n' + items + '\n\n'
+                        + '💰 Tổng: ' + fmtPrice(o.total) + 'đ\n'
+                        + '💳 ' + pay
+                        + (o.note ? '\n📝 ' + o.note : '')
+                        + '\n\n📋 Trạng thái: ' + STATUS[o.status];
+
+                    promises.push(telegramApi(token, 'sendMessage', {
+                        chat_id: chatId,
+                        text: orderText,
+                        reply_markup: buildKeyboard(o.id, o.status)
+                    }).then(function(result) {
+                        if (result.ok && result.result) {
+                            return fsUpdate('orders', o.id, {
+                                telegramMsgId: String(result.result.message_id),
+                                telegramChatId: String(chatId)
+                            });
+                        }
+                    }));
+                });
+                num++;
+            });
+
+            noAddr.forEach(function(o) {
+                var icon = STATUS_ICON[o.status] || '📋';
+                var items = (o.items || []).map(function(i) { return '• ' + i.name + ' x' + i.qty + ' — ' + fmtPrice(i.price * i.qty) + 'đ'; }).join('\n');
+                var pay = o.payMethod === 'transfer' ? 'Chuyển khoản' : 'Tiền mặt';
+                var orderText = '📍 Chưa có địa chỉ\n━━━━━━━━━━━━\n\n'
+                    + icon + ' ' + o.customer + '\n'
+                    + (o.phone ? '📞 ' + o.phone + '\n' : '')
+                    + '\n' + items + '\n\n'
+                    + '💰 Tổng: ' + fmtPrice(o.total) + 'đ\n'
+                    + '💳 ' + pay
+                    + (o.note ? '\n📝 ' + o.note : '')
+                    + '\n\n📋 Trạng thái: ' + STATUS[o.status];
+
+                promises.push(telegramApi(token, 'sendMessage', {
+                    chat_id: chatId,
+                    text: orderText,
+                    reply_markup: buildKeyboard(o.id, o.status)
+                }).then(function(result) {
+                    if (result.ok && result.result) {
+                        return fsUpdate('orders', o.id, {
+                            telegramMsgId: String(result.result.message_id),
+                            telegramChatId: String(chatId)
+                        });
+                    }
+                }));
+            });
+
+            res.status(200).send('OK');
+            await Promise.all(promises);
+            return;
+        }
+
+        return res.status(200).send('OK');
+    }
 
     if (!update.callback_query) return res.status(200).send('OK');
 
