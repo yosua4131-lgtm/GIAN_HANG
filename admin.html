@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Quán Bán Hàng</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#ee4d2d">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon" href="/icon-192.png">
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="admin.css">
@@ -969,11 +973,46 @@
 
         function formatPrice(n) { return n.toLocaleString('vi-VN') + 'đ'; }
 
+        // === PUSH NOTIFICATIONS ===
+        const VAPID_PUBLIC = 'BPc67bN7DAxZusqIVLj47nNAYM12u1IGCkpFAiC2cl_9i4WH1mMSnlJhB345xkovrw11Z4t0_gd90qfSbRifxLY';
+
+        async function setupPush() {
+            if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+            try {
+                const reg = await navigator.serviceWorker.register('/sw.js');
+                const existing = await reg.pushManager.getSubscription();
+                if (existing) return;
+                const sub = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC)
+                });
+                await fetch('/api/push?subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(sub.toJSON())
+                });
+            } catch(e) { console.log('Push setup:', e); }
+        }
+
+        function urlBase64ToUint8Array(base64String) {
+            var padding = '='.repeat((4 - base64String.length % 4) % 4);
+            var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+            var raw = atob(base64);
+            var arr = new Uint8Array(raw.length);
+            for (var i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+            return arr;
+        }
+
         // Init
         async function init() {
             await loadCategories();
             loadProducts();
             checkNotifications();
+            if (Notification.permission === 'default') {
+                Notification.requestPermission().then(function() { setupPush(); });
+            } else if (Notification.permission === 'granted') {
+                setupPush();
+            }
         }
         init();
     </script>

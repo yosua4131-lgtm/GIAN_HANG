@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quán Bán Hàng</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#ee4d2d">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="/icon-192.png">
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Quicksand:wght@700&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1363,6 +1368,11 @@
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         sendTelegramNotify(order, docRef.id);
+        fetch('/api/push?notify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: 'Đơn hàng mới!', body: order.customer + ' — ' + fmtPrice(order.total) + 'đ' })
+        }).catch(function(){});
         var isTransfer = payMethod === 'transfer';
         cart = [];
         selectedAddons = {};
