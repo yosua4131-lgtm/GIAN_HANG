@@ -984,17 +984,20 @@
     let allProducts = [];
     let allCategories = [];
     let allAddresses = [];
+    let allAddons = [];
+    let selectedAddons = {};
     let qrUrl = '';
     let pmSlide = 0;
 
     // === MENU ===
     async function loadMenu() {
         const grid = document.getElementById('menuGrid');
-        const [catSnap, prodSnap, addrSnap, payDoc] = await Promise.all([
+        const [catSnap, prodSnap, addrSnap, payDoc, addonSnap] = await Promise.all([
             db.collection('categories').orderBy('order').get(),
             db.collection('products').where('active', '==', true).get(),
             db.collection('addresses').orderBy('order').get(),
-            db.collection('settings').doc('payment').get()
+            db.collection('settings').doc('payment').get(),
+            db.collection('addons').orderBy('order').get()
         ]);
         qrUrl = (payDoc.exists && payDoc.data().qrUrl) ? payDoc.data().qrUrl : '';
 
@@ -1004,6 +1007,8 @@
         prodSnap.forEach(doc => allProducts.push({ id: doc.id, ...doc.data() }));
         allAddresses = [];
         addrSnap.forEach(doc => allAddresses.push({ id: doc.id, ...doc.data() }));
+        allAddons = [];
+        addonSnap.forEach(doc => allAddons.push({ id: doc.id, ...doc.data() }));
 
         if (allProducts.length === 0) {
             grid.innerHTML = '<p class="empty">Chưa có món nào</p>';
@@ -1123,6 +1128,11 @@
         flyToCart(e);
     }
     function removeFromCart(id) { cart = cart.filter(c => c.id !== id); updateCart(); }
+    function toggleAddon(id, name, price, checked) {
+        if (checked) { selectedAddons[id] = { id: id, name: name, price: price, qty: 1 }; }
+        else { delete selectedAddons[id]; }
+        renderCartContent();
+    }
     function changeQty(id, d) {
         const item = cart.find(c => c.id === id);
         if (!item) return;
@@ -1174,7 +1184,19 @@
                     + '<span class="cart-item-price" id="price-' + c.id + '">' + fmtPrice(c.price*c.qty) + '</span>'
                     + '<button class="cart-item-del" onclick="removeFromCart(\'' + c.id + '\')">&times;</button></div>';
             });
-            h += '<div class="cart-summary"><span>Tổng cộng</span><strong id="cartTotal">' + fmtPrice(total) + '</strong></div>';
+            if (allAddons.length) {
+                h += '<div class="cart-addons"><p style="font-weight:600;font-size:0.88rem;margin:12px 0 8px">Món thêm:</p>';
+                allAddons.forEach(a => {
+                    var checked = selectedAddons[a.id] ? ' checked' : '';
+                    h += '<label class="addon-row" style="display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer">'
+                        + '<input type="checkbox" onchange="toggleAddon(\'' + a.id + '\',\'' + a.name.replace(/'/g, "\\'") + '\',' + a.price + ',this.checked)"' + checked + '>'
+                        + '<span style="flex:1">' + a.name + '</span>'
+                        + '<span style="color:var(--primary);font-weight:600">+' + fmtPrice(a.price) + 'đ</span></label>';
+                });
+                h += '</div>';
+            }
+            var addonTotal = Object.values(selectedAddons).reduce(function(s, a) { return s + a.price * a.qty; }, 0);
+            h += '<div class="cart-summary"><span>Tổng cộng</span><strong id="cartTotal">' + fmtPrice(total + addonTotal) + '</strong></div>';
         }
         let addrOpts = '<option value="">-- Chọn địa chỉ --</option>';
         allAddresses.forEach(a => { addrOpts += '<option value="' + a.name.replace(/"/g, '&quot;') + '">' + a.name + '</option>'; });
@@ -1311,8 +1333,8 @@
             payMethod: payMethod,
             transferConfirmed: payMethod === 'transfer' ? transferConfirmed : null,
             note: document.getElementById('customerNote').value.trim(),
-            items: cart.map(c => ({id:c.id, name:c.name, price:c.price, qty:c.qty})),
-            total: cart.reduce((s,c) => s+c.price*c.qty, 0),
+            items: cart.map(c => ({id:c.id, name:c.name, price:c.price, qty:c.qty})).concat(Object.values(selectedAddons).map(a => ({id:a.id, name:a.name, price:a.price, qty:a.qty}))),
+            total: cart.reduce((s,c) => s+c.price*c.qty, 0) + Object.values(selectedAddons).reduce((s,a) => s+a.price*a.qty, 0),
             status: 'pending',
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         };
@@ -1325,6 +1347,7 @@
         });
         sendTelegramNotify(order, docRef.id);
         cart = [];
+        selectedAddons = {};
         updateCart();
         closeCart();
         const shortId = docRef.id.slice(-6).toUpperCase();

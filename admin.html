@@ -119,6 +119,7 @@
             <button class="tab active" onclick="switchTab('products')">Sản phẩm</button>
             <button class="tab" onclick="switchTab('orders')">Đơn hàng</button>
             <button class="tab" onclick="switchTab('addresses')">Địa chỉ</button>
+            <button class="tab" onclick="switchTab('addons')">Món thêm</button>
             <button class="tab" onclick="switchTab('payment')">Thanh toán</button>
             <button class="tab" onclick="switchTab('telegram')">Telegram</button>
             <button class="tab" onclick="switchTab('zalo')">Zalo</button>
@@ -173,6 +174,10 @@
         <!-- Tab: Orders -->
         <section id="tab-orders" class="tab-content">
             <h2>Đơn hàng</h2>
+            <div style="display:flex;gap:8px;margin-bottom:12px">
+                <button class="btn-secondary" id="btnOrderNormal" onclick="loadOrders()" style="font-weight:700">Mới nhất</button>
+                <button class="btn-secondary" id="btnOrderGroup" onclick="loadOrdersGrouped()">Gom theo địa chỉ</button>
+            </div>
             <div id="orderList" class="order-list">
                 <p class="loading">Đang tải...</p>
             </div>
@@ -186,6 +191,20 @@
                 <button class="btn-primary" onclick="addAddress()">+ Thêm</button>
             </div>
             <div id="addressList" class="order-list">
+                <p class="loading">Đang tải...</p>
+            </div>
+        </section>
+
+        <!-- Tab: Món thêm -->
+        <section id="tab-addons" class="tab-content">
+            <h2>Món thêm (kèm đơn)</h2>
+            <p style="color:#666;font-size:0.85rem;margin-bottom:16px">Các món phụ hiện trong giỏ hàng để khách chọn thêm (canh, cơm, nước...)</p>
+            <div class="cat-add-form">
+                <input type="text" id="addonName" placeholder="Tên món thêm (VD: Canh)">
+                <input type="number" id="addonPrice" placeholder="Giá (VNĐ)" style="width:120px">
+                <button class="btn-primary" onclick="saveAddon()">+ Thêm</button>
+            </div>
+            <div id="addonList" style="margin-top:16px">
                 <p class="loading">Đang tải...</p>
             </div>
         </section>
@@ -268,6 +287,7 @@
             if (name === 'payment') loadQR();
             if (name === 'telegram') loadTelegram();
             if (name === 'zalo') loadZalo();
+            if (name === 'addons') loadAddons();
             if (name === 'notifications') loadNotifications();
         }
 
@@ -535,33 +555,87 @@
         }
 
         // === ORDERS ===
+        const statusIcon = { pending: '🕐', confirmed: '✅', preparing: '👨‍🍳', delivering: '🚚', done: '🎉', cancelled: '❌' };
+
+        function renderOrderCard(id, d) {
+            const time = d.createdAt ? new Date(d.createdAt.toDate()).toLocaleString('vi-VN') : '';
+            const items = d.items.map(i => i.name + ' x' + i.qty).join(', ');
+            const icon = statusIcon[d.status] || '📋';
+            return '<div class="order-card">'
+                + '<div class="order-header"><span class="order-status-icon">' + icon + '</span><strong>' + d.customer + '</strong><span class="order-time">' + time + '</span></div>'
+                + '<p class="order-items">' + items + '</p>'
+                + (d.note ? '<p class="order-note">📝 ' + d.note + '</p>' : '')
+                + '<div class="order-footer"><span class="order-total">' + formatPrice(d.total) + '</span>'
+                + '<select onchange="updateOrderStatus(\'' + id + '\', this.value)">'
+                + '<option value="pending"' + (d.status === 'pending' ? ' selected' : '') + '>🕐 Chờ xác nhận</option>'
+                + '<option value="confirmed"' + (d.status === 'confirmed' ? ' selected' : '') + '>✅ Đã xác nhận</option>'
+                + '<option value="preparing"' + (d.status === 'preparing' ? ' selected' : '') + '>👨‍🍳 Đang chuẩn bị</option>'
+                + '<option value="delivering"' + (d.status === 'delivering' ? ' selected' : '') + '>🚚 Đang giao</option>'
+                + '<option value="done"' + (d.status === 'done' ? ' selected' : '') + '>🎉 Hoàn thành</option>'
+                + '<option value="cancelled"' + (d.status === 'cancelled' ? ' selected' : '') + '>❌ Đã hủy</option>'
+                + '</select>'
+                + '<button class="btn-danger" onclick="deleteOrder(\'' + id + '\')" style="margin-left:8px;padding:4px 10px;font-size:0.8rem">Xóa</button>'
+                + '</div></div>';
+        }
+
         async function loadOrders() {
+            document.getElementById('btnOrderNormal').style.fontWeight = '700';
+            document.getElementById('btnOrderGroup').style.fontWeight = '400';
             const list = document.getElementById('orderList');
             const snapshot = await db.collection('orders').orderBy('createdAt', 'desc').limit(50).get();
             if (snapshot.empty) { list.innerHTML = '<p class="empty">Chưa có đơn hàng</p>'; return; }
             list.innerHTML = '';
-            snapshot.forEach(doc => {
-                const d = doc.data();
-                const time = d.createdAt ? new Date(d.createdAt.toDate()).toLocaleString('vi-VN') : '';
-                const items = d.items.map(i => i.name + ' x' + i.qty).join(', ');
-                const statusIcon = { pending: '🕐', confirmed: '✅', preparing: '👨‍🍳', delivering: '🚚', done: '🎉', cancelled: '❌' };
-                const icon = statusIcon[d.status] || '📋';
-                list.innerHTML += '<div class="order-card">'
-                    + '<div class="order-header"><span class="order-status-icon">' + icon + '</span><strong>' + d.customer + '</strong><span class="order-time">' + time + '</span></div>'
-                    + '<p class="order-items">' + items + '</p>'
-                    + (d.note ? '<p class="order-note">📝 ' + d.note + '</p>' : '')
-                    + '<div class="order-footer"><span class="order-total">' + formatPrice(d.total) + '</span>'
-                    + '<select onchange="updateOrderStatus(\'' + doc.id + '\', this.value)">'
-                    + '<option value="pending"' + (d.status === 'pending' ? ' selected' : '') + '>🕐 Chờ xác nhận</option>'
-                    + '<option value="confirmed"' + (d.status === 'confirmed' ? ' selected' : '') + '>✅ Đã xác nhận</option>'
-                    + '<option value="preparing"' + (d.status === 'preparing' ? ' selected' : '') + '>👨‍🍳 Đang chuẩn bị</option>'
-                    + '<option value="delivering"' + (d.status === 'delivering' ? ' selected' : '') + '>🚚 Đang giao</option>'
-                    + '<option value="done"' + (d.status === 'done' ? ' selected' : '') + '>🎉 Hoàn thành</option>'
-                    + '<option value="cancelled"' + (d.status === 'cancelled' ? ' selected' : '') + '>❌ Đã hủy</option>'
-                    + '</select>'
-                    + '<button class="btn-danger" onclick="deleteOrder(\'' + doc.id + '\')" style="margin-left:8px;padding:4px 10px;font-size:0.8rem">Xóa</button>'
-                    + '</div></div>';
+            snapshot.forEach(doc => { list.innerHTML += renderOrderCard(doc.id, doc.data()); });
+        }
+
+        async function loadOrdersGrouped() {
+            document.getElementById('btnOrderNormal').style.fontWeight = '400';
+            document.getElementById('btnOrderGroup').style.fontWeight = '700';
+            const list = document.getElementById('orderList');
+            list.innerHTML = '<p class="loading">Đang tải...</p>';
+            const [orderSnap, addrSnap] = await Promise.all([
+                db.collection('orders').orderBy('createdAt', 'desc').limit(50).get(),
+                db.collection('addresses').orderBy('order').get()
+            ]);
+            if (orderSnap.empty) { list.innerHTML = '<p class="empty">Chưa có đơn hàng</p>'; return; }
+
+            var addresses = [];
+            addrSnap.forEach(doc => addresses.push({ id: doc.id, ...doc.data() }));
+
+            var orders = [];
+            orderSnap.forEach(doc => orders.push({ id: doc.id, ...doc.data() }));
+
+            var grouped = {};
+            var noAddr = [];
+            orders.forEach(function(o) {
+                if (o.address) {
+                    if (!grouped[o.address]) grouped[o.address] = [];
+                    grouped[o.address].push(o);
+                } else {
+                    noAddr.push(o);
+                }
             });
+
+            var html = '';
+            var num = 1;
+            addresses.forEach(function(addr) {
+                var addrOrders = grouped[addr.name];
+                if (!addrOrders || !addrOrders.length) return;
+                html += '<div style="margin-bottom:20px">'
+                    + '<h3 style="background:var(--orange);color:#fff;padding:10px 16px;border-radius:8px;margin-bottom:8px">📍 ' + num + '. ' + addr.name + ' (' + addrOrders.length + ' đơn)</h3>';
+                addrOrders.forEach(function(o) { html += renderOrderCard(o.id, o); });
+                html += '</div>';
+                num++;
+            });
+
+            if (noAddr.length) {
+                html += '<div style="margin-bottom:20px">'
+                    + '<h3 style="background:#999;color:#fff;padding:10px 16px;border-radius:8px;margin-bottom:8px">📍 Chưa có địa chỉ (' + noAddr.length + ' đơn)</h3>';
+                noAddr.forEach(function(o) { html += renderOrderCard(o.id, o); });
+                html += '</div>';
+            }
+
+            document.getElementById('orderList').innerHTML = html || '<p class="empty">Chưa có đơn hàng</p>';
         }
 
         const statusLabel = { pending: 'Chờ xác nhận', confirmed: 'Đã xác nhận', preparing: 'Đang chuẩn bị', delivering: 'Đang giao', done: 'Hoàn thành', cancelled: 'Đã hủy' };
@@ -659,6 +733,41 @@
             if (!confirm('Xóa địa chỉ này?')) return;
             await db.collection('addresses').doc(id).delete();
             loadAddresses();
+        }
+
+        // === ADDONS ===
+        async function loadAddons() {
+            const list = document.getElementById('addonList');
+            list.innerHTML = '<p class="loading">Đang tải...</p>';
+            const snap = await db.collection('addons').orderBy('order').get();
+            if (snap.empty) { list.innerHTML = '<p class="empty">Chưa có món thêm</p>'; return; }
+            let html = '';
+            snap.forEach(doc => {
+                const d = doc.data();
+                html += '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:10px;margin-bottom:8px">'
+                    + '<span style="flex:1;font-weight:600">' + d.name + '</span>'
+                    + '<span style="color:var(--orange);font-weight:600">' + Number(d.price).toLocaleString('vi-VN') + 'đ</span>'
+                    + '<button class="btn-danger" onclick="deleteAddon(\'' + doc.id + '\')" style="padding:4px 12px;font-size:0.8rem">Xóa</button>'
+                    + '</div>';
+            });
+            list.innerHTML = html;
+        }
+
+        async function saveAddon() {
+            const name = document.getElementById('addonName').value.trim();
+            const price = parseInt(document.getElementById('addonPrice').value);
+            if (!name || !price) return alert('Nhập tên và giá món thêm');
+            const snap = await db.collection('addons').get();
+            await db.collection('addons').add({ name, price, order: snap.size });
+            document.getElementById('addonName').value = '';
+            document.getElementById('addonPrice').value = '';
+            loadAddons();
+        }
+
+        async function deleteAddon(id) {
+            if (!confirm('Xóa món thêm này?')) return;
+            await db.collection('addons').doc(id).delete();
+            loadAddons();
         }
 
         // === PAYMENT QR ===
