@@ -15,12 +15,12 @@ module.exports = async function handler(req, res) {
     const { title, body, subs } = req.body || {};
     if (!subs || !subs.length) return res.status(200).json({ ok: true, sent: 0 });
 
-    res.status(200).json({ ok: true, sent: subs.length });
-
     await Promise.allSettled(subs.map(function(sub) {
         return webpush.sendNotification(sub, JSON.stringify({
             title: title || 'Đơn hàng mới!',
             body: body || ''
         })).catch(function() {});
     }));
+
+    return res.status(200).json({ ok: true, sent: subs.length });
 };
