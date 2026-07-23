@@ -1339,7 +1339,7 @@
             payMethod: payMethod,
             transferConfirmed: payMethod === 'transfer' ? transferConfirmed : null,
             note: document.getElementById('customerNote').value.trim(),
-            items: cart.map(c => ({id:c.id, name:c.name, price:c.price, qty:c.qty})).concat(Object.values(selectedAddons).map(a => ({id:a.id, name:a.name, price:a.price, qty:a.qty}))),
+            items: cart.map(function(c) { var p = allProducts.find(function(x){return x.id===c.id}); var cat = p && p.categoryId ? allCategories.find(function(x){return x.id===p.categoryId}) : null; return {id:c.id, name:c.name, price:c.price, qty:c.qty, category: cat ? cat.name : ''}; }).concat(Object.values(selectedAddons).map(a => ({id:a.id, name:a.name, price:a.price, qty:a.qty, addon:true}))),
             total: cart.reduce((s,c) => s+c.price*c.qty, 0) + Object.values(selectedAddons).reduce((s,a) => s+a.price*a.qty, 0),
             status: 'pending',
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -1378,7 +1378,24 @@
     });
     function sendTelegramNotify(order, orderId) {
         if (!teleToken || !teleChatId) return;
-        const items = order.items.map(i => '• ' + i.name + ' x' + i.qty + ' — ' + fmtPrice(i.price * i.qty) + 'đ').join('\n');
+        var mainItems = order.items.filter(function(i){return !i.addon;});
+        var addonItems = order.items.filter(function(i){return i.addon;});
+        var grouped = {};
+        mainItems.forEach(function(i) {
+            var cat = i.category || 'Khác';
+            if (!grouped[cat]) grouped[cat] = [];
+            grouped[cat].push(i);
+        });
+        var itemsText = '';
+        Object.keys(grouped).forEach(function(cat) {
+            itemsText += '📂 ' + cat + '\n';
+            grouped[cat].forEach(function(i) { itemsText += '  • ' + i.name + ' x' + i.qty + ' — ' + fmtPrice(i.price * i.qty) + 'đ\n'; });
+        });
+        if (addonItems.length) {
+            itemsText += '🥢 Món thêm\n';
+            addonItems.forEach(function(i) { itemsText += '  • ' + i.name + ' x' + i.qty + (i.price > 0 ? ' — ' + fmtPrice(i.price * i.qty) + 'đ' : '') + '\n'; });
+        }
+        const items = itemsText.trim();
         const pay = order.payMethod === 'transfer' ? 'Chuyển khoản' : 'Tiền mặt';
         const text = '🛒 ĐƠN HÀNG MỚI!\n\n'
             + '👤 ' + order.customer + '\n'

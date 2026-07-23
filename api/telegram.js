@@ -97,6 +97,23 @@ const STATUS = {
 
 function fmtPrice(n) { return Number(n).toLocaleString('vi-VN'); }
 
+function fmtItems(orderItems) {
+    var mainItems = (orderItems || []).filter(function(i) { return !i.addon; });
+    var addonItems = (orderItems || []).filter(function(i) { return i.addon; });
+    var grouped = {};
+    mainItems.forEach(function(i) { var cat = i.category || 'Khác'; if (!grouped[cat]) grouped[cat] = []; grouped[cat].push(i); });
+    var text = '';
+    Object.keys(grouped).forEach(function(cat) {
+        text += '📂 ' + cat + '\n';
+        grouped[cat].forEach(function(i) { text += '  • ' + i.name + ' x' + i.qty + ' — ' + fmtPrice(i.price * i.qty) + 'đ\n'; });
+    });
+    if (addonItems.length) {
+        text += '🥢 Món thêm\n';
+        addonItems.forEach(function(i) { text += '  • ' + i.name + ' x' + i.qty + (i.price > 0 ? ' — ' + fmtPrice(i.price * i.qty) + 'đ' : '') + '\n'; });
+    }
+    return text.trim();
+}
+
 function buildKeyboard(orderId, currentStatus) {
     const rows = [];
     const statuses = Object.keys(STATUS);
@@ -112,7 +129,7 @@ function buildKeyboard(orderId, currentStatus) {
 }
 
 function buildOrderText(order, status) {
-    var items = (order.items || []).map(function(i) { return '• ' + i.name + ' x' + i.qty + ' — ' + fmtPrice(i.price * i.qty) + 'đ'; }).join('\n');
+    var items = fmtItems(order.items);
     var pay = order.payMethod === 'transfer' ? 'Chuyển khoản' : 'Tiền mặt';
     return '🛒 ĐƠN HÀNG MỚI!\n\n'
         + '👤 ' + order.customer + '\n'
@@ -217,7 +234,7 @@ module.exports = async function handler(req, res) {
 
                 list.forEach(function(o) {
                     var icon = STATUS_ICON[o.status] || '📋';
-                    var items = (o.items || []).map(function(i) { return '• ' + i.name + ' x' + i.qty + ' — ' + fmtPrice(i.price * i.qty) + 'đ'; }).join('\n');
+                    var items = fmtItems(o.items);
                     var pay = o.payMethod === 'transfer' ? 'Chuyển khoản' : 'Tiền mặt';
                     var orderText = '📍 ' + num + '. ' + addr.name + '\n━━━━━━━━━━━━\n\n'
                         + icon + ' ' + o.customer + '\n'
