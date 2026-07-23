@@ -1368,20 +1368,13 @@
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         sendTelegramNotify(order, docRef.id);
-        db.collection('pushSubscriptions').get().then(function(snap) {
-            var subs = [];
-            snap.forEach(function(doc) {
-                var d = doc.data();
-                if (d.endpoint) subs.push({ endpoint: d.endpoint, keys: { p256dh: d.p256dh, auth: d.auth } });
-            });
-            if (subs.length) {
-                fetch('/api/push', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ title: 'Đơn hàng mới!', body: order.customer + ' — ' + fmtPrice(order.total) + 'đ', subs: subs })
-                }).catch(function(){});
-            }
-        }).catch(function(){});
+        if (pushSubs.length) {
+            fetch('/api/push', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: 'Đơn hàng mới!', body: order.customer + ' — ' + fmtPrice(order.total) + 'đ', subs: pushSubs })
+            }).catch(function(){});
+        }
         var isTransfer = payMethod === 'transfer';
         cart = [];
         selectedAddons = {};
@@ -1424,6 +1417,14 @@
             teleChatId = doc.data().chatId || '';
         }
     });
+    let pushSubs = [];
+    db.collection('pushSubscriptions').get().then(function(snap) {
+        snap.forEach(function(doc) {
+            var d = doc.data();
+            if (d.endpoint) pushSubs.push({ endpoint: d.endpoint, keys: { p256dh: d.p256dh, auth: d.auth } });
+        });
+    }).catch(function(){});
+
     let zaloLink = '';
     db.collection('settings').doc('zalo').get().then(function(doc) {
         if (doc.exists && doc.data().link) {
