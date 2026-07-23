@@ -1329,6 +1329,7 @@
         const addrCustom = document.getElementById('customerAddrCustom').value.trim();
         const address = addrSel === '__custom' ? addrCustom : addrSel;
         if (!address) { alert('Vui lòng chọn địa chỉ giao hàng'); return; }
+        if (!document.getElementById('customerPhone').value.trim()) { alert('Vui lòng nhập số điện thoại'); return; }
         const payMethod = document.getElementById('payMethod').value;
         const order = {
             customer: document.getElementById('customerName').value.trim(),
