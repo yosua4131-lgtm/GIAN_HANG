@@ -756,7 +756,7 @@
         async function saveAddon() {
             const name = document.getElementById('addonName').value.trim();
             const price = parseInt(document.getElementById('addonPrice').value);
-            if (!name || !price) return alert('Nhập tên và giá món thêm');
+            if (!name || isNaN(price)) return alert('Nhập tên và giá món thêm');
             const snap = await db.collection('addons').get();
             await db.collection('addons').add({ name, price, order: snap.size });
             document.getElementById('addonName').value = '';
