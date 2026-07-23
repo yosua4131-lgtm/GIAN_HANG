@@ -1131,7 +1131,10 @@
     function toggleAddon(id, name, price, checked) {
         if (checked) { selectedAddons[id] = { id: id, name: name, price: price, qty: 1 }; }
         else { delete selectedAddons[id]; }
-        renderCartContent();
+        var cartTotal = cart.reduce(function(s,c) { return s+c.price*c.qty; }, 0);
+        var addonTotal = Object.values(selectedAddons).reduce(function(s,a) { return s+a.price*a.qty; }, 0);
+        var el = document.getElementById('cartTotal');
+        if (el) el.textContent = fmtPrice(cartTotal + addonTotal);
     }
     function changeQty(id, d) {
         const item = cart.find(c => c.id === id);
