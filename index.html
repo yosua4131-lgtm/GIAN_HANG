@@ -1328,6 +1328,7 @@
         const addrSel = document.getElementById('customerAddrSelect').value;
         const addrCustom = document.getElementById('customerAddrCustom').value.trim();
         const address = addrSel === '__custom' ? addrCustom : addrSel;
+        if (!address) { alert('Vui lòng chọn địa chỉ giao hàng'); return; }
         const payMethod = document.getElementById('payMethod').value;
         const order = {
             customer: document.getElementById('customerName').value.trim(),
