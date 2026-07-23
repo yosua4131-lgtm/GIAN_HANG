@@ -1368,10 +1368,19 @@
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         sendTelegramNotify(order, docRef.id);
-        fetch('/api/push?notify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title: 'Đơn hàng mới!', body: order.customer + ' — ' + fmtPrice(order.total) + 'đ' })
+        db.collection('pushSubscriptions').get().then(function(snap) {
+            var subs = [];
+            snap.forEach(function(doc) {
+                var d = doc.data();
+                if (d.endpoint) subs.push({ endpoint: d.endpoint, keys: { p256dh: d.p256dh, auth: d.auth } });
+            });
+            if (subs.length) {
+                fetch('/api/push', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title: 'Đơn hàng mới!', body: order.customer + ' — ' + fmtPrice(order.total) + 'đ', subs: subs })
+                }).catch(function(){});
+            }
         }).catch(function(){});
         var isTransfer = payMethod === 'transfer';
         cart = [];

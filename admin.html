@@ -992,10 +992,12 @@
                     userVisibleOnly: true,
                     applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC)
                 });
-                await fetch('/api/push?subscribe', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(sub.toJSON())
+                var subJson = sub.toJSON();
+                await db.collection('pushSubscriptions').doc('admin').set({
+                    endpoint: subJson.endpoint,
+                    p256dh: subJson.keys.p256dh,
+                    auth: subJson.keys.auth,
+                    createdAt: new Date().toISOString()
                 });
             } catch(e) { console.log('Push setup:', e); }
         }
