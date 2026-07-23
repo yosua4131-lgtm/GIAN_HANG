@@ -987,20 +987,23 @@
     let allAddresses = [];
     let allAddons = [];
     let selectedAddons = {};
+    let addonRequiredCat = '';
     let qrUrl = '';
     let pmSlide = 0;
 
     // === MENU ===
     async function loadMenu() {
         const grid = document.getElementById('menuGrid');
-        const [catSnap, prodSnap, addrSnap, payDoc, addonSnap] = await Promise.all([
+        const [catSnap, prodSnap, addrSnap, payDoc, addonSnap, addonSettDoc] = await Promise.all([
             db.collection('categories').orderBy('order').get(),
             db.collection('products').where('active', '==', true).get(),
             db.collection('addresses').orderBy('order').get(),
             db.collection('settings').doc('payment').get(),
-            db.collection('addons').orderBy('order').get()
+            db.collection('addons').orderBy('order').get(),
+            db.collection('settings').doc('addons').get()
         ]);
         qrUrl = (payDoc.exists && payDoc.data().qrUrl) ? payDoc.data().qrUrl : '';
+        addonRequiredCat = (addonSettDoc.exists && addonSettDoc.data().requiredCategory) ? addonSettDoc.data().requiredCategory : '';
 
         allCategories = [];
         catSnap.forEach(doc => allCategories.push({ id: doc.id, ...doc.data() }));
@@ -1189,15 +1192,23 @@
                     + '<button class="cart-item-del" onclick="removeFromCart(\'' + c.id + '\')">&times;</button></div>';
             });
             if (allAddons.length) {
-                h += '<div class="cart-addons"><p style="font-weight:600;font-size:0.88rem;margin:12px 0 8px">Món thêm:</p>';
-                allAddons.forEach(a => {
-                    var checked = selectedAddons[a.id] ? ' checked' : '';
-                    h += '<label class="addon-row" style="display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer">'
-                        + '<input type="checkbox" onchange="toggleAddon(\'' + a.id + '\',\'' + a.name.replace(/'/g, "\\'") + '\',' + a.price + ',this.checked)"' + checked + '>'
-                        + '<span style="flex:1">' + a.name + '</span>'
-                        + '<span style="color:var(--primary);font-weight:600">+' + fmtPrice(a.price) + 'đ</span></label>';
-                });
-                h += '</div>';
+                var hasRequired = !addonRequiredCat || cart.some(function(c) { var p = allProducts.find(function(x){return x.id===c.id}); return p && p.categoryId === addonRequiredCat; });
+                var reqCatName = addonRequiredCat ? (allCategories.find(function(c){return c.id===addonRequiredCat})||{}).name||'' : '';
+                if (hasRequired) {
+                    h += '<div class="cart-addons"><p style="font-weight:600;font-size:0.88rem;margin:12px 0 8px">Món thêm:</p>';
+                    allAddons.forEach(a => {
+                        var checked = selectedAddons[a.id] ? ' checked' : '';
+                        h += '<label class="addon-row" style="display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer">'
+                            + '<input type="checkbox" onchange="toggleAddon(\'' + a.id + '\',\'' + a.name.replace(/'/g, "\\'") + '\',' + a.price + ',this.checked)"' + checked + '>'
+                            + '<span style="flex:1">' + a.name + '</span>'
+                            + '<span style="color:var(--primary);font-weight:600">+' + fmtPrice(a.price) + 'đ</span></label>';
+                    });
+                    h += '</div>';
+                } else {
+                    selectedAddons = {};
+                    h += '<div class="cart-addons" style="opacity:0.5"><p style="font-weight:600;font-size:0.88rem;margin:12px 0 4px">Món thêm:</p>'
+                        + '<p style="font-size:0.82rem;color:#e74c3c">Cần có món loại "' + reqCatName + '" trong giỏ mới chọn được món thêm</p></div>';
+                }
             }
             var addonTotal = Object.values(selectedAddons).reduce(function(s, a) { return s + a.price * a.qty; }, 0);
             h += '<div class="cart-summary"><span>Tổng cộng</span><strong id="cartTotal">' + fmtPrice(total + addonTotal) + '</strong></div>';

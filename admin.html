@@ -200,6 +200,17 @@
         <section id="tab-addons" class="tab-content">
             <h2>Món thêm (kèm đơn)</h2>
             <p style="color:#666;font-size:0.85rem;margin-bottom:16px">Các món phụ hiện trong giỏ hàng để khách chọn thêm (canh, cơm, nước...)</p>
+            <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:16px">
+                <label style="font-weight:600;font-size:0.9rem;display:block;margin-bottom:6px">Điều kiện đặt món thêm</label>
+                <p style="color:#666;font-size:0.82rem;margin-bottom:8px">Khách phải có món thuộc loại này trong giỏ mới được chọn món thêm</p>
+                <div style="display:flex;gap:8px;align-items:center">
+                    <select id="addonRequiredCat" style="flex:1;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:0.9rem">
+                        <option value="">Không yêu cầu (ai cũng chọn được)</option>
+                    </select>
+                    <button class="btn-primary" onclick="saveAddonCondition()">Lưu</button>
+                </div>
+                <p id="addonConditionStatus" style="font-size:0.82rem;margin-top:6px;color:#16a34a"></p>
+            </div>
             <div class="cat-add-form">
                 <input type="text" id="addonName" placeholder="Tên món thêm (VD: Canh)">
                 <input type="number" id="addonPrice" placeholder="Giá (VNĐ)" style="width:120px">
@@ -774,6 +785,12 @@
 
         // === ADDONS ===
         async function loadAddons() {
+            var sel = document.getElementById('addonRequiredCat');
+            sel.innerHTML = '<option value="">Không yêu cầu (ai cũng chọn được)</option>';
+            allCategories.forEach(function(c) { sel.innerHTML += '<option value="' + c.id + '">' + c.name + '</option>'; });
+            db.collection('settings').doc('addons').get().then(function(doc) {
+                if (doc.exists && doc.data().requiredCategory) sel.value = doc.data().requiredCategory;
+            });
             const list = document.getElementById('addonList');
             list.innerHTML = '<p class="loading">Đang tải...</p>';
             const snap = await db.collection('addons').orderBy('order').get();
@@ -799,6 +816,13 @@
             document.getElementById('addonName').value = '';
             document.getElementById('addonPrice').value = '';
             loadAddons();
+        }
+
+        async function saveAddonCondition() {
+            var catId = document.getElementById('addonRequiredCat').value;
+            await db.collection('settings').doc('addons').set({ requiredCategory: catId }, { merge: true });
+            document.getElementById('addonConditionStatus').textContent = 'Đã lưu!';
+            setTimeout(function() { document.getElementById('addonConditionStatus').textContent = ''; }, 2000);
         }
 
         async function deleteAddon(id) {
