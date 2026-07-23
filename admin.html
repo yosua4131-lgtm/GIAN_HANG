@@ -274,6 +274,12 @@
         <!-- Tab: Notifications -->
         <section id="tab-notifications" class="tab-content">
             <h2>Thông báo</h2>
+            <div id="pushSetup" style="background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:14px 16px;margin-bottom:12px">
+                <p style="font-weight:600;margin-bottom:6px">🔔 Nhận thông báo đơn hàng</p>
+                <p style="font-size:0.85rem;color:#555;margin-bottom:10px">Bật thông báo để nhận ngay khi có đơn mới (cần cài app vào màn hình chính trên iPhone)</p>
+                <button class="btn-primary" id="btnEnablePush" onclick="enablePush()">Bật thông báo</button>
+                <p id="pushStatus" style="font-size:0.82rem;margin-top:6px"></p>
+            </div>
             <div style="display:flex;gap:8px;margin-bottom:8px">
                 <button class="btn-secondary" onclick="clearNotifications()">Đánh dấu đã đọc tất cả</button>
                 <button class="btn-danger" onclick="deleteAllNotifications()">Xóa tất cả thông báo</button>
@@ -994,6 +1000,60 @@
             } catch(e) { console.log('Push setup:', e); }
         }
 
+        async function enablePush() {
+            var status = document.getElementById('pushStatus');
+            var btn = document.getElementById('btnEnablePush');
+            if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                status.textContent = '❌ Trình duyệt không hỗ trợ. Trên iPhone cần cài app vào màn hình chính trước.';
+                status.style.color = '#e74c3c';
+                return;
+            }
+            btn.disabled = true;
+            btn.textContent = 'Đang bật...';
+            try {
+                var perm = await Notification.requestPermission();
+                if (perm !== 'granted') {
+                    status.textContent = '❌ Bạn đã từ chối thông báo. Vào Cài đặt trình duyệt để bật lại.';
+                    status.style.color = '#e74c3c';
+                    btn.disabled = false;
+                    btn.textContent = 'Bật thông báo';
+                    return;
+                }
+                await setupPush();
+                status.textContent = '✅ Đã bật thông báo! Bạn sẽ nhận thông báo khi có đơn mới.';
+                status.style.color = '#16a34a';
+                btn.textContent = 'Đã bật ✓';
+            } catch(e) {
+                status.textContent = '❌ Lỗi: ' + e.message;
+                status.style.color = '#e74c3c';
+                btn.disabled = false;
+                btn.textContent = 'Bật thông báo';
+            }
+        }
+
+        function updatePushUI() {
+            var box = document.getElementById('pushSetup');
+            if (!box) return;
+            if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                document.getElementById('pushStatus').textContent = 'Trên iPhone cần cài app vào màn hình chính trước.';
+                return;
+            }
+            if (Notification.permission === 'granted') {
+                navigator.serviceWorker.ready.then(function(reg) {
+                    reg.pushManager.getSubscription().then(function(sub) {
+                        if (sub) {
+                            box.style.background = '#d4edda';
+                            box.style.borderColor = '#28a745';
+                            document.getElementById('btnEnablePush').textContent = 'Đã bật ✓';
+                            document.getElementById('btnEnablePush').disabled = true;
+                            document.getElementById('pushStatus').textContent = '✅ Thông báo đang hoạt động';
+                            document.getElementById('pushStatus').style.color = '#16a34a';
+                        }
+                    });
+                });
+            }
+        }
+
         function urlBase64ToUint8Array(base64String) {
             var padding = '='.repeat((4 - base64String.length % 4) % 4);
             var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -1008,11 +1068,7 @@
             await loadCategories();
             loadProducts();
             checkNotifications();
-            if (Notification.permission === 'default') {
-                Notification.requestPermission().then(function() { setupPush(); });
-            } else if (Notification.permission === 'granted') {
-                setupPush();
-            }
+            updatePushUI();
         }
         init();
     </script>
