@@ -195,6 +195,18 @@ module.exports = async function handler(req, res) {
         const chatId = update.message.chat.id;
         const text = update.message.text.trim();
 
+        if (text === '/start') {
+            const settings = await fsGet('settings', 'telegram');
+            if (!settings || !settings.token) return res.status(200).send('OK');
+            const token = settings.token;
+            await fsUpdate('settings', 'telegram', { chatId: String(chatId) });
+            await telegramApi(token, 'sendMessage', {
+                chat_id: chatId,
+                text: '✅ Đã kết nối thành công!\n\nChat ID: ' + chatId + '\n\nĐơn hàng mới sẽ gửi về đây.'
+            });
+            return res.status(200).send('OK');
+        }
+
         if (text === '/gom') {
             const settings = await fsGet('settings', 'telegram');
             if (!settings || !settings.token) return res.status(200).send('OK');
