@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quán Bán Hàng</title>
+    <title>Cơm Bếp Happy House</title>
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#ee4d2d">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -67,14 +67,16 @@
         }
         .logo {
             font-family: 'Quicksand', 'Nunito', sans-serif;
-            font-size: 1.3rem;
-            font-weight: 700;
+            font-size: 1.25rem;
+            font-weight: 800;
             color: #fff;
-            letter-spacing: 0.02em;
+            letter-spacing: 0.03em;
             cursor: default;
             user-select: none;
+            text-transform: uppercase;
         }
-        .logo span { color: #fff; }
+        .logo .logo-icon { font-size: 1.4rem; margin-right: 6px; }
+        .logo .logo-accent { color: #ffe082; font-weight: 900; }
         .header-actions {
             display: flex;
             align-items: center;
@@ -937,7 +939,7 @@
 
 <header class="header">
     <div class="header-inner">
-        <div class="logo" id="logoBtn">Quán <span>Bán Hàng</span></div>
+        <div class="logo" id="logoBtn"><span class="logo-icon">🍚</span>Cơm Bếp <span class="logo-accent">Happy House</span></div>
         <div class="header-actions">
             <a href="admin.html" class="btn-admin" id="adminBtn">Admin</a>
             <button class="order-lookup-btn" onclick="openLookup()" title="Tra cứu đơn hàng">
@@ -974,7 +976,7 @@
 <a class="zalo-fab" id="zaloFab" href="#" target="_blank" style="display:none" title="Chat Zalo">
     <img src="https://upload.wikimedia.org/wikipedia/commons/9/91/Icon_of_Zalo.svg" alt="Zalo">
 </a>
-<div class="footer">&copy; 2026 Quán Bán Hàng</div>
+<div class="footer">&copy; 2026 Cơm Bếp Happy House</div>
 
 <div class="toast" id="toast"></div>
 <div id="productModal" class="overlay hidden"></div>
