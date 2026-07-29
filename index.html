@@ -996,20 +996,23 @@
     let selectedAddons = {};
     let addonRequiredCat = '';
     let qrUrl = '';
+    let apipaySettings = null;
     let pmSlide = 0;
 
     // === MENU ===
     async function loadMenu() {
         const grid = document.getElementById('menuGrid');
-        const [catSnap, prodSnap, addrSnap, payDoc, addonSnap, addonSettDoc] = await Promise.all([
+        const [catSnap, prodSnap, addrSnap, payDoc, addonSnap, addonSettDoc, apipayDoc] = await Promise.all([
             db.collection('categories').orderBy('order').get(),
             db.collection('products').where('active', '==', true).get(),
             db.collection('addresses').orderBy('order').get(),
             db.collection('settings').doc('payment').get(),
             db.collection('addons').orderBy('order').get(),
-            db.collection('settings').doc('addons').get()
+            db.collection('settings').doc('addons').get(),
+            db.collection('settings').doc('apipay').get()
         ]);
         qrUrl = (payDoc.exists && payDoc.data().qrUrl) ? payDoc.data().qrUrl : '';
+        apipaySettings = (apipayDoc.exists && apipayDoc.data().apiKey) ? apipayDoc.data() : null;
         addonRequiredCat = (addonSettDoc.exists && addonSettDoc.data().requiredCategory) ? addonSettDoc.data().requiredCategory : '';
 
         allCategories = [];
@@ -1350,15 +1353,18 @@
         if (!address) { alert('Vui lòng chọn địa chỉ giao hàng'); return; }
         if (!document.getElementById('customerPhone').value.trim()) { alert('Vui lòng nhập số điện thoại'); return; }
         const payMethod = document.getElementById('payMethod').value;
+        var orderTotal = cart.reduce((s,c) => s+c.price*c.qty, 0) + Object.values(selectedAddons).reduce((s,a) => s+a.price*a.qty, 0);
+        var paymentCode = 'DH' + Date.now().toString(36).toUpperCase().slice(-6) + Math.random().toString(36).toUpperCase().slice(2,4);
         const order = {
             customer: document.getElementById('customerName').value.trim(),
             phone: document.getElementById('customerPhone').value.trim(),
             address: address,
             payMethod: payMethod,
             transferConfirmed: payMethod === 'transfer' ? transferConfirmed : null,
+            paymentCode: paymentCode,
             note: document.getElementById('customerNote').value.trim(),
             items: cart.map(function(c) { var p = allProducts.find(function(x){return x.id===c.id}); var cat = p && p.categoryId ? allCategories.find(function(x){return x.id===p.categoryId}) : null; return {id:c.id, name:c.name, price:c.price, qty:c.qty, category: cat ? cat.name : ''}; }).concat(Object.values(selectedAddons).map(a => ({id:a.id, name:a.name, price:a.price, qty:a.qty, addon:true}))),
-            total: cart.reduce((s,c) => s+c.price*c.qty, 0) + Object.values(selectedAddons).reduce((s,a) => s+a.price*a.qty, 0),
+            total: orderTotal,
             status: 'pending',
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         };
@@ -1383,7 +1389,9 @@
         updateCart();
         closeCart();
         const shortId = docRef.id.slice(-6).toUpperCase();
-        if (isTransfer && zaloLink) {
+        if (isTransfer && apipaySettings) {
+            showApiPayQR(paymentCode, orderTotal, shortId);
+        } else if (isTransfer && zaloLink) {
             showTransferReminder(shortId);
         } else {
             showToast('Đặt hàng thành công! Mã đơn: ' + shortId, 5000);
@@ -1408,6 +1416,46 @@
             + '</div>';
         document.body.appendChild(overlay);
         overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+    }
+
+    async function showApiPayQR(paymentCode, total, shortId) {
+        var overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+        overlay.innerHTML = '<div style="background:#fff;border-radius:16px;padding:28px 24px;max-width:360px;width:100%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.2)">'
+            + '<div style="font-size:2.5rem;margin-bottom:8px">💳</div>'
+            + '<h3 style="font-size:1.1rem;margin-bottom:4px">Chuyển khoản để hoàn tất</h3>'
+            + '<p style="font-size:0.85rem;color:#666;margin-bottom:4px">Mã đơn: <strong>' + shortId + '</strong></p>'
+            + '<p style="font-size:1.2rem;font-weight:700;color:#e03131;margin-bottom:12px">' + fmtPrice(total) + 'đ</p>'
+            + '<div id="apipayQrBox" style="min-height:200px;display:flex;align-items:center;justify-content:center"><p style="color:#888">Đang tạo mã QR...</p></div>'
+            + '<p style="font-size:0.8rem;color:#888;margin-top:8px">Nội dung CK: <strong>' + paymentCode + '</strong></p>'
+            + '<p style="font-size:0.75rem;color:#aaa;margin-top:4px">Đơn sẽ tự động xác nhận sau khi chuyển khoản</p>'
+            + '<button onclick="this.closest(\'div\').parentElement.remove()" style="display:block;margin:14px auto 0;background:none;border:none;color:#999;font-size:0.85rem;cursor:pointer">Đóng</button>'
+            + '</div>';
+        document.body.appendChild(overlay);
+        overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+        try {
+            var res = await fetch('https://app.apipay.vn/v1/client/payment-requests', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apipaySettings.apiKey },
+                body: JSON.stringify({
+                    bankPublicId: apipaySettings.bankPublicId,
+                    amount: total,
+                    content: paymentCode,
+                    title: 'Don hang ' + shortId
+                })
+            });
+            var data = await res.json();
+            var qrBox = document.getElementById('apipayQrBox');
+            if (data.qrUrl || data.qrDataURL || data.payUrl) {
+                var qrSrc = data.qrUrl || data.qrDataURL || ('https://img.vietqr.io/image/' + data.bankCode + '-' + data.accountNumber + '-compact.jpg?amount=' + total + '&addInfo=' + paymentCode);
+                qrBox.innerHTML = '<img src="' + qrSrc + '" alt="QR" style="max-width:240px;border-radius:8px">';
+            } else {
+                qrBox.innerHTML = '<p style="color:#e03131">Không tạo được QR. Chuyển khoản thủ công với nội dung: <strong>' + paymentCode + '</strong></p>';
+            }
+        } catch(err) {
+            var qrBox = document.getElementById('apipayQrBox');
+            if (qrBox) qrBox.innerHTML = '<p style="color:#e03131">Lỗi kết nối ApiPay. Chuyển khoản thủ công với nội dung: <strong>' + paymentCode + '</strong></p>';
+        }
     }
 
     function fmtPrice(n) { return n.toLocaleString('vi-VN'); }
@@ -1464,6 +1512,7 @@
             + '\n' + items + '\n\n'
             + '💰 Tổng: ' + fmtPrice(order.total) + 'đ\n'
             + '💳 ' + pay
+            + (order.paymentCode ? '\n🔖 Mã CK: ' + order.paymentCode : '')
             + (order.note ? '\n📝 ' + order.note : '')
             + '\n\n📋 Trạng thái: Chờ xác nhận';
         const keyboard = { inline_keyboard: [

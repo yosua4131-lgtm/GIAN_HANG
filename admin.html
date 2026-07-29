@@ -227,7 +227,27 @@
 
         <!-- Tab: Payment -->
         <section id="tab-payment" class="tab-content">
-            <h2>Mã QR chuyển khoản</h2>
+            <h2>Thanh toán chuyển khoản</h2>
+
+            <div style="background:#e8f5e9;border:1px solid #4caf50;border-radius:10px;padding:14px 16px;margin-bottom:16px">
+                <p style="font-weight:600;margin-bottom:6px">🔗 ApiPay — Tự động xác nhận chuyển khoản</p>
+                <p style="font-size:0.85rem;color:#555;margin-bottom:12px">Đăng ký tại <a href="https://apipay.vn" target="_blank" style="color:#1a73e8">apipay.vn</a> → lấy API Key + Bank ID → dán vào đây. Khi khách chuyển khoản, đơn tự động được xác nhận.</p>
+                <div style="display:flex;flex-direction:column;gap:10px;max-width:500px">
+                    <label style="font-weight:600;font-size:0.9rem">API Key</label>
+                    <input type="text" id="apipayApiKey" placeholder="Dán API Key từ ApiPay..." style="padding:10px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:0.9rem">
+                    <label style="font-weight:600;font-size:0.9rem">Bank Public ID</label>
+                    <input type="text" id="apipayBankId" placeholder="Dán Bank Public ID..." style="padding:10px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:0.9rem">
+                    <p style="font-size:0.8rem;color:#888">Vào ApiPay → Ngân hàng → copy Public ID của tài khoản đã liên kết</p>
+                    <div style="display:flex;gap:8px">
+                        <button class="btn-primary" onclick="saveApiPay()">Lưu cài đặt</button>
+                    </div>
+                    <p id="apipayStatus" style="font-size:0.85rem;min-height:20px"></p>
+                </div>
+            </div>
+
+            <hr style="border:none;border-top:1px solid #eee;margin:20px 0">
+            <h3 style="font-size:1rem;margin-bottom:8px">QR tĩnh (dự phòng)</h3>
+            <p style="font-size:0.85rem;color:#888;margin-bottom:12px">Nếu không dùng ApiPay, tải lên ảnh QR ngân hàng cố định.</p>
             <div id="qrPreview" style="margin:16px 0;text-align:center">
                 <p class="loading">Đang tải...</p>
             </div>
@@ -306,7 +326,7 @@
             event.target.classList.add('active');
             if (name === 'orders') loadOrders();
             if (name === 'addresses') loadAddresses();
-            if (name === 'payment') loadQR();
+            if (name === 'payment') { loadQR(); loadApiPay(); }
             if (name === 'telegram') loadTelegram();
             if (name === 'zalo') loadZalo();
             if (name === 'addons') loadAddons();
@@ -894,6 +914,22 @@
             if (doc.exists) {
                 document.getElementById('zaloLink').value = doc.data().phone || '';
             }
+        }
+
+        async function loadApiPay() {
+            const doc = await db.collection('settings').doc('apipay').get();
+            if (doc.exists) {
+                const d = doc.data();
+                document.getElementById('apipayApiKey').value = d.apiKey || '';
+                document.getElementById('apipayBankId').value = d.bankPublicId || '';
+            }
+        }
+        async function saveApiPay() {
+            const apiKey = document.getElementById('apipayApiKey').value.trim();
+            const bankPublicId = document.getElementById('apipayBankId').value.trim();
+            if (!apiKey || !bankPublicId) { alert('Vui lòng nhập đầy đủ API Key và Bank Public ID'); return; }
+            await db.collection('settings').doc('apipay').set({ apiKey: apiKey, bankPublicId: bankPublicId });
+            document.getElementById('apipayStatus').innerHTML = '<span style="color:green">✓ Đã lưu thành công!</span>';
         }
 
         async function saveZalo() {
