@@ -233,11 +233,15 @@
                 <p style="font-weight:600;margin-bottom:6px">🔗 ApiPay — Tự động xác nhận chuyển khoản</p>
                 <p style="font-size:0.85rem;color:#555;margin-bottom:12px">Đăng ký tại <a href="https://apipay.vn" target="_blank" style="color:#1a73e8">apipay.vn</a> → lấy API Key + Bank ID → dán vào đây. Khi khách chuyển khoản, đơn tự động được xác nhận.</p>
                 <div style="display:flex;flex-direction:column;gap:10px;max-width:500px">
-                    <label style="font-weight:600;font-size:0.9rem">API Key</label>
-                    <input type="text" id="apipayApiKey" placeholder="Dán API Key từ ApiPay..." style="padding:10px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:0.9rem">
+                    <label style="font-weight:600;font-size:0.9rem">Access Key</label>
+                    <input type="text" id="apipayAccessKey" placeholder="Dán Access Key..." style="padding:10px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:0.85rem">
+                    <label style="font-weight:600;font-size:0.9rem">Secret Key</label>
+                    <input type="text" id="apipaySecretKey" placeholder="Dán Secret Key..." style="padding:10px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:0.85rem">
                     <label style="font-weight:600;font-size:0.9rem">Bank Public ID</label>
-                    <input type="text" id="apipayBankId" placeholder="Dán Bank Public ID..." style="padding:10px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:0.9rem">
-                    <p style="font-size:0.8rem;color:#888">Vào ApiPay → Ngân hàng → copy Public ID của tài khoản đã liên kết</p>
+                    <input type="text" id="apipayBankId" placeholder="Dán Bank Public ID..." style="padding:10px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:0.85rem">
+                    <label style="font-weight:600;font-size:0.9rem">Signing Secret (Webhook)</label>
+                    <input type="text" id="apipaySigningSecret" placeholder="Dán Signing Secret..." style="padding:10px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:0.85rem">
+                    <p style="font-size:0.8rem;color:#888">Lấy từ ApiPay: API Keys → Access/Secret Key | Ngân hàng → Bank Public ID | Webhooks → Signing Secret</p>
                     <div style="display:flex;gap:8px">
                         <button class="btn-primary" onclick="saveApiPay()">Lưu cài đặt</button>
                     </div>
@@ -920,15 +924,19 @@
             const doc = await db.collection('settings').doc('apipay').get();
             if (doc.exists) {
                 const d = doc.data();
-                document.getElementById('apipayApiKey').value = d.apiKey || '';
+                document.getElementById('apipayAccessKey').value = d.accessKey || '';
+                document.getElementById('apipaySecretKey').value = d.secretKey || '';
                 document.getElementById('apipayBankId').value = d.bankPublicId || '';
+                document.getElementById('apipaySigningSecret').value = d.signingSecret || '';
             }
         }
         async function saveApiPay() {
-            const apiKey = document.getElementById('apipayApiKey').value.trim();
+            const accessKey = document.getElementById('apipayAccessKey').value.trim();
+            const secretKey = document.getElementById('apipaySecretKey').value.trim();
             const bankPublicId = document.getElementById('apipayBankId').value.trim();
-            if (!apiKey || !bankPublicId) { alert('Vui lòng nhập đầy đủ API Key và Bank Public ID'); return; }
-            await db.collection('settings').doc('apipay').set({ apiKey: apiKey, bankPublicId: bankPublicId });
+            const signingSecret = document.getElementById('apipaySigningSecret').value.trim();
+            if (!accessKey || !secretKey || !bankPublicId) { alert('Vui lòng nhập đầy đủ Access Key, Secret Key và Bank Public ID'); return; }
+            await db.collection('settings').doc('apipay').set({ accessKey: accessKey, secretKey: secretKey, bankPublicId: bankPublicId, signingSecret: signingSecret });
             document.getElementById('apipayStatus').innerHTML = '<span style="color:green">✓ Đã lưu thành công!</span>';
         }
 

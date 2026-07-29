@@ -1012,7 +1012,7 @@
             db.collection('settings').doc('apipay').get()
         ]);
         qrUrl = (payDoc.exists && payDoc.data().qrUrl) ? payDoc.data().qrUrl : '';
-        apipaySettings = (apipayDoc.exists && apipayDoc.data().apiKey) ? apipayDoc.data() : null;
+        apipaySettings = (apipayDoc.exists && apipayDoc.data().accessKey) ? apipayDoc.data() : null;
         addonRequiredCat = (addonSettDoc.exists && addonSettDoc.data().requiredCategory) ? addonSettDoc.data().requiredCategory : '';
 
         allCategories = [];
@@ -1434,9 +1434,10 @@
         document.body.appendChild(overlay);
         overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
         try {
+            var bearerToken = btoa(apipaySettings.accessKey + ':' + apipaySettings.secretKey);
             var res = await fetch('https://app.apipay.vn/v1/client/payment-requests', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apipaySettings.apiKey },
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + bearerToken },
                 body: JSON.stringify({
                     bankPublicId: apipaySettings.bankPublicId,
                     amount: total,
