@@ -1440,8 +1440,10 @@
         overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
 
         // Realtime listener - tu dong cap nhat khi webhook confirm
+        var isFirstSnapshot = true;
         var unsubscribe = db.collection('orders').doc(orderId).onSnapshot(function(doc) {
             if (!doc.exists) return;
+            if (isFirstSnapshot) { isFirstSnapshot = false; return; }
             var data = doc.data();
             if (data.status === 'confirmed' || data.paymentVerified) {
                 document.getElementById('apipayIcon').textContent = '✅';
