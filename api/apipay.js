@@ -156,11 +156,27 @@ module.exports = async function handler(req, res) {
         if (teleSettings && teleSettings.token && order) {
             var token = teleSettings.token;
             var chatId = order.telegramChatId || teleSettings.chatId;
-            var text = '✅ ĐÃ THANH TOÁN!\n\n'
+            var items = (order.items || []);
+            var mainItems = items.filter(function(i) { return !i.addon; });
+            var addonItems = items.filter(function(i) { return i.addon; });
+            var itemsText = '';
+            mainItems.forEach(function(i) {
+                itemsText += '  • ' + (i.name || '') + ' x' + (i.qty || 1) + ' — ' + Number((i.price || 0) * (i.qty || 1)).toLocaleString('vi-VN') + 'đ\n';
+            });
+            if (addonItems.length) {
+                itemsText += '🥢 Món thêm\n';
+                addonItems.forEach(function(i) {
+                    itemsText += '  • ' + (i.name || '') + ' x' + (i.qty || 1) + (i.price > 0 ? ' — ' + Number(i.price * (i.qty || 1)).toLocaleString('vi-VN') + 'đ' : '') + '\n';
+                });
+            }
+            var text = '✅ ĐƠN HÀNG ĐÃ THANH TOÁN!\n\n'
                 + '👤 ' + (order.customer || '') + '\n'
                 + (order.phone ? '📞 ' + order.phone + '\n' : '')
-                + '💰 ' + Number(amount).toLocaleString('vi-VN') + 'đ\n'
+                + (order.address ? '📍 ' + order.address + '\n' : '')
+                + '\n' + itemsText + '\n'
+                + '💰 Tổng: ' + Number(order.total || amount).toLocaleString('vi-VN') + 'đ\n'
                 + '🔖 Mã CK: ' + orderCode + '\n'
+                + (order.note ? '📝 ' + order.note + '\n' : '')
                 + '\n💳 Chuyển khoản đã được xác nhận tự động';
 
             // Gui tin moi
