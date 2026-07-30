@@ -65,11 +65,14 @@ module.exports = async function handler(req, res) {
 
     var settings = await fsGet('settings', 'apipay');
     if (!settings || !settings.accessKey || !settings.secretKey) {
-        return res.status(400).json({ error: 'ApiPay not configured' });
+        return res.status(400).json({ error: 'ApiPay not configured', settings: settings ? Object.keys(settings) : null });
     }
 
     var bearerToken = Buffer.from(settings.accessKey + ':' + settings.secretKey).toString('base64');
     var bankId = bankPublicId || settings.bankPublicId;
+    if (!bankId) {
+        return res.status(400).json({ error: 'No bankPublicId found', settingsKeys: Object.keys(settings) });
+    }
 
     try {
         var apiRes = await fetch('https://app.apipay.vn/v1/client/payment-requests', {
