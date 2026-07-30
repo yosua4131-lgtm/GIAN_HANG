@@ -159,9 +159,18 @@ module.exports = async function handler(req, res) {
             var items = (order.items || []);
             var mainItems = items.filter(function(i) { return !i.addon; });
             var addonItems = items.filter(function(i) { return i.addon; });
-            var itemsText = '';
+            var grouped = {};
             mainItems.forEach(function(i) {
-                itemsText += '  • ' + (i.name || '') + ' x' + (i.qty || 1) + ' — ' + Number((i.price || 0) * (i.qty || 1)).toLocaleString('vi-VN') + 'đ\n';
+                var cat = i.category || 'Khác';
+                if (!grouped[cat]) grouped[cat] = [];
+                grouped[cat].push(i);
+            });
+            var itemsText = '';
+            Object.keys(grouped).forEach(function(cat) {
+                itemsText += '📂 ' + cat + '\n';
+                grouped[cat].forEach(function(i) {
+                    itemsText += '  • ' + (i.name || '') + ' x' + (i.qty || 1) + ' — ' + Number((i.price || 0) * (i.qty || 1)).toLocaleString('vi-VN') + 'đ\n';
+                });
             });
             if (addonItems.length) {
                 itemsText += '🥢 Món thêm\n';
