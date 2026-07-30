@@ -188,12 +188,16 @@ module.exports = async function handler(req, res) {
                 + (order.note ? '📝 ' + order.note + '\n' : '')
                 + '\n💳 Chuyển khoản đã được xác nhận tự động';
 
-            // Gui tin moi
-            await fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
+            // Gui tin moi + luu msgId de xoa sau
+            var sendRes = await fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ chat_id: chatId, text: text })
             });
+            var sendData = await sendRes.json();
+            if (sendData.ok && sendData.result) {
+                await fsUpdate('orders', orderId, { telegramPayMsgId: sendData.result.message_id });
+            }
 
             // Cap nhat tin cu neu co
             if (order.telegramMsgId && chatId) {
