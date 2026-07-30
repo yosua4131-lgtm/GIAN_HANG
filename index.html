@@ -1295,7 +1295,12 @@
         const qrSec = document.getElementById('qrSection');
         const btn = document.getElementById('submitBtn');
         if (method === 'transfer') {
-            if (qrUrl) {
+            if (apipaySettings) {
+                qrSec.style.display = 'none';
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.textContent = 'Đặt hàng';
+            } else if (qrUrl) {
                 qrSec.style.display = 'block';
                 qrSec.innerHTML = '<div class="qr-box">'
                     + '<p>Quét mã QR để chuyển khoản</p>'
@@ -1446,9 +1451,11 @@
             });
             var data = await res.json();
             var qrBox = document.getElementById('apipayQrBox');
-            if (data.qrUrl || data.qrDataURL || data.payUrl) {
-                var qrSrc = data.qrUrl || data.qrDataURL || ('https://img.vietqr.io/image/' + data.bankCode + '-' + data.accountNumber + '-compact.jpg?amount=' + total + '&addInfo=' + paymentCode);
-                qrBox.innerHTML = '<img src="' + qrSrc + '" alt="QR" style="max-width:240px;border-radius:8px">';
+            var d = data.data || data;
+            if (d.qrUrl || d.payUrl) {
+                var qrSrc = d.qrUrl || d.payUrl;
+                qrBox.innerHTML = '<img src="' + qrSrc + '" alt="QR" style="max-width:240px;border-radius:8px">'
+                    + (d.accountNumber ? '<p style="font-size:0.8rem;color:#555;margin-top:8px">TK: <strong>' + d.accountNumber + '</strong> — ' + (d.bankCode || 'MB') + '</p>' : '');
             } else {
                 qrBox.innerHTML = '<p style="color:#e03131">Không tạo được QR. Chuyển khoản thủ công với nội dung: <strong>' + paymentCode + '</strong></p>';
             }
