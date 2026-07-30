@@ -84,12 +84,21 @@ module.exports = async function handler(req, res) {
     var body = req.body;
     if (!body) return res.status(200).send('OK');
 
-    var content = body.content || body.description || '';
-    var amount = body.amount || body.transferAmount || 0;
+    // Log webhook data for debugging
+    await fsUpdate('settings', 'apipay_debug', {
+        lastWebhook: JSON.stringify(body).slice(0, 500),
+        receivedAt: new Date().toISOString()
+    });
+
+    var content = body.content || body.description || body.transactionContent || '';
+    if (body.data) {
+        content = content || body.data.content || body.data.description || body.data.transactionContent || '';
+    }
+    var amount = body.amount || body.transferAmount || (body.data && body.data.amount) || 0;
 
     if (!content) return res.status(200).json({ success: false, message: 'no content' });
 
-    var match = content.match(/DH([A-Z0-9]+)/i);
+    var match = content.match(/(DH[A-Z0-9]+)/i);
     if (!match) return res.status(200).json({ success: false, message: 'no order code' });
 
     var orderCode = match[1].toUpperCase();
