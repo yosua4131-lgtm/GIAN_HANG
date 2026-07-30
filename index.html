@@ -1395,7 +1395,7 @@
         closeCart();
         const shortId = docRef.id.slice(-6).toUpperCase();
         if (isTransfer && apipaySettings) {
-            showApiPayQR(paymentCode, orderTotal, shortId);
+            showApiPayQR(paymentCode, orderTotal, shortId, docRef.id);
         } else if (isTransfer && zaloLink) {
             showTransferReminder(shortId);
         } else {
@@ -1423,21 +1423,40 @@
         overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
     }
 
-    async function showApiPayQR(paymentCode, total, shortId) {
+    async function showApiPayQR(paymentCode, total, shortId, orderId) {
         var overlay = document.createElement('div');
         overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
         overlay.innerHTML = '<div style="background:#fff;border-radius:16px;padding:28px 24px;max-width:360px;width:100%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.2)">'
-            + '<div style="font-size:2.5rem;margin-bottom:8px">💳</div>'
-            + '<h3 style="font-size:1.1rem;margin-bottom:4px">Chuyển khoản để hoàn tất</h3>'
+            + '<div id="apipayIcon" style="font-size:2.5rem;margin-bottom:8px">💳</div>'
+            + '<h3 id="apipayTitle" style="font-size:1.1rem;margin-bottom:4px">Chuyển khoản để hoàn tất</h3>'
             + '<p style="font-size:0.85rem;color:#666;margin-bottom:4px">Mã đơn: <strong>' + shortId + '</strong></p>'
             + '<p style="font-size:1.2rem;font-weight:700;color:#e03131;margin-bottom:12px">' + fmtPrice(total) + 'đ</p>'
             + '<div id="apipayQrBox" style="min-height:200px;display:flex;align-items:center;justify-content:center"><p style="color:#888">Đang tạo mã QR...</p></div>'
-            + '<p style="font-size:0.8rem;color:#888;margin-top:8px">Nội dung CK: <strong>' + paymentCode + '</strong></p>'
-            + '<p style="font-size:0.75rem;color:#aaa;margin-top:4px">Đơn sẽ tự động xác nhận sau khi chuyển khoản</p>'
+            + '<p id="apipayNote" style="font-size:0.8rem;color:#888;margin-top:8px">Nội dung CK: <strong>' + paymentCode + '</strong></p>'
+            + '<p id="apipayStatus" style="font-size:0.75rem;color:#aaa;margin-top:4px">Đơn sẽ tự động xác nhận sau khi chuyển khoản</p>'
             + '<button onclick="this.closest(\'div\').parentElement.remove()" style="display:block;margin:14px auto 0;background:none;border:none;color:#999;font-size:0.85rem;cursor:pointer">Đóng</button>'
             + '</div>';
         document.body.appendChild(overlay);
         overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+
+        // Realtime listener - tu dong cap nhat khi webhook confirm
+        var unsubscribe = db.collection('orders').doc(orderId).onSnapshot(function(doc) {
+            if (!doc.exists) return;
+            var data = doc.data();
+            if (data.status === 'confirmed' || data.paymentVerified) {
+                document.getElementById('apipayIcon').textContent = '✅';
+                document.getElementById('apipayTitle').textContent = 'Thanh toán thành công!';
+                document.getElementById('apipayTitle').style.color = '#2e7d32';
+                var qrBox = document.getElementById('apipayQrBox');
+                if (qrBox) qrBox.innerHTML = '<p style="font-size:1.1rem;color:#2e7d32;font-weight:600;padding:20px 0">Đã nhận chuyển khoản<br>Đơn hàng đang được xử lý</p>';
+                var note = document.getElementById('apipayNote');
+                if (note) note.style.display = 'none';
+                var st = document.getElementById('apipayStatus');
+                if (st) { st.textContent = '✓ Đã xác nhận thanh toán'; st.style.color = '#2e7d32'; st.style.fontWeight = '600'; }
+                unsubscribe();
+            }
+        });
+
         try {
             var res = await fetch('/api/create-qr', {
                 method: 'POST',
