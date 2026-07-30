@@ -790,11 +790,19 @@
             const promises = [];
             snap.forEach(doc => {
                 const d = doc.data();
-                if (teleToken && d.telegramMsgId && d.telegramChatId) {
-                    promises.push(fetch('https://api.telegram.org/bot' + teleToken + '/deleteMessage', {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ chat_id: d.telegramChatId, message_id: d.telegramMsgId })
-                    }).catch(function() {}));
+                if (teleToken && d.telegramChatId) {
+                    if (d.telegramMsgId) {
+                        promises.push(fetch('https://api.telegram.org/bot' + teleToken + '/deleteMessage', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ chat_id: d.telegramChatId, message_id: d.telegramMsgId })
+                        }).catch(function() {}));
+                    }
+                    if (d.telegramPayMsgId) {
+                        promises.push(fetch('https://api.telegram.org/bot' + teleToken + '/deleteMessage', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ chat_id: d.telegramChatId, message_id: d.telegramPayMsgId })
+                        }).catch(function() {}));
+                    }
                 }
                 promises.push(db.collection('orders').doc(doc.id).delete());
             });
