@@ -89,6 +89,14 @@ module.exports = async function handler(req, res) {
             })
         });
         var data = await apiRes.json();
+        // Log response for debugging
+        var token2 = await getAccessToken();
+        var logFields = { lastQrResponse: { stringValue: JSON.stringify(data).slice(0, 800) }, loggedAt: { stringValue: new Date().toISOString() } };
+        await fetch(FIRESTORE + '/settings/apipay_qr_debug?updateMask.fieldPaths=lastQrResponse&updateMask.fieldPaths=loggedAt', {
+            method: 'PATCH',
+            headers: { 'Authorization': 'Bearer ' + token2, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fields: logFields })
+        }).catch(function(){});
         return res.status(200).json(data);
     } catch (err) {
         return res.status(500).json({ error: 'ApiPay request failed' });
