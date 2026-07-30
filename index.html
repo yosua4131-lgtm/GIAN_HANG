@@ -1489,11 +1489,14 @@
                 var qrSrc = d.qrUrl || d.payUrl;
                 qrBox.innerHTML = '<img src="' + qrSrc + '" alt="QR" style="max-width:220px;border-radius:12px;border:1px solid #eee">';
                 var bankInfo = document.getElementById('apipayBankInfo');
-                if (bankInfo && (d.accountNumber || d.accountName || d.bankName)) {
+                var sBankName = apipaySettings.bankName || '';
+                var sAccNum = apipaySettings.accountNumber || '';
+                var sAccName = apipaySettings.accountName || '';
+                if (bankInfo && (sBankName || sAccNum || sAccName)) {
                     var infoHtml = '<p style="font-size:0.78rem;color:#999;margin:0 0 8px;text-transform:uppercase;font-weight:600">Thông tin chuyển khoản</p>';
-                    if (d.bankName || d.bankCode) infoHtml += '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.85rem"><span style="color:#888">Ngân hàng</span><strong style="color:#333">' + (d.bankName || d.bankCode || '') + '</strong></div>';
-                    if (d.accountNumber) infoHtml += '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.85rem"><span style="color:#888">Số TK</span><strong style="color:#333">' + d.accountNumber + '</strong></div>';
-                    if (d.accountName) infoHtml += '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.85rem"><span style="color:#888">Chủ TK</span><strong style="color:#333">' + d.accountName + '</strong></div>';
+                    if (sBankName) infoHtml += '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.85rem"><span style="color:#888">Ngân hàng</span><strong style="color:#333">' + sBankName + '</strong></div>';
+                    if (sAccNum) infoHtml += '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.85rem"><span style="color:#888">Số TK</span><strong style="color:#333">' + sAccNum + '</strong></div>';
+                    if (sAccName) infoHtml += '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.85rem"><span style="color:#888">Chủ TK</span><strong style="color:#333">' + sAccName + '</strong></div>';
                     infoHtml += '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.85rem"><span style="color:#888">Số tiền</span><strong style="color:#e03131">' + fmtPrice(total) + 'đ</strong></div>';
                     bankInfo.innerHTML = infoHtml;
                     bankInfo.style.display = 'block';

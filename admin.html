@@ -242,6 +242,15 @@
                     <label style="font-weight:600;font-size:0.9rem">Signing Secret (Webhook)</label>
                     <input type="text" id="apipaySigningSecret" placeholder="Dán Signing Secret..." style="padding:10px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:0.85rem">
                     <p style="font-size:0.8rem;color:#888">Lấy từ ApiPay: API Keys → Access/Secret Key | Ngân hàng → Bank Public ID | Webhooks → Signing Secret</p>
+                    <hr style="border:none;border-top:1px dashed #ccc;margin:12px 0">
+                    <p style="font-weight:600;font-size:0.9rem;margin-bottom:4px">📋 Thông tin hiển thị cho khách</p>
+                    <p style="font-size:0.8rem;color:#888;margin-bottom:8px">Hiện trên popup QR để khách biết chuyển cho ai</p>
+                    <label style="font-weight:600;font-size:0.85rem">Ngân hàng</label>
+                    <input type="text" id="apipayBankName" placeholder="VD: MB Bank, Vietcombank..." style="padding:10px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:0.85rem">
+                    <label style="font-weight:600;font-size:0.85rem">Số tài khoản</label>
+                    <input type="text" id="apipayAccountNumber" placeholder="VD: 0123456789" style="padding:10px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:0.85rem">
+                    <label style="font-weight:600;font-size:0.85rem">Tên người nhận</label>
+                    <input type="text" id="apipayAccountName" placeholder="VD: NGUYEN VAN A" style="padding:10px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:0.85rem">
                     <div style="display:flex;gap:8px">
                         <button class="btn-primary" onclick="saveApiPay()">Lưu cài đặt</button>
                     </div>
@@ -936,6 +945,9 @@
                 document.getElementById('apipaySecretKey').value = d.secretKey || '';
                 document.getElementById('apipayBankId').value = d.bankPublicId || '';
                 document.getElementById('apipaySigningSecret').value = d.signingSecret || '';
+                document.getElementById('apipayBankName').value = d.bankName || '';
+                document.getElementById('apipayAccountNumber').value = d.accountNumber || '';
+                document.getElementById('apipayAccountName').value = d.accountName || '';
             }
         }
         async function saveApiPay() {
@@ -943,8 +955,11 @@
             const secretKey = document.getElementById('apipaySecretKey').value.trim();
             const bankPublicId = document.getElementById('apipayBankId').value.trim();
             const signingSecret = document.getElementById('apipaySigningSecret').value.trim();
+            const bankName = document.getElementById('apipayBankName').value.trim();
+            const accountNumber = document.getElementById('apipayAccountNumber').value.trim();
+            const accountName = document.getElementById('apipayAccountName').value.trim();
             if (!accessKey || !secretKey || !bankPublicId) { alert('Vui lòng nhập đầy đủ Access Key, Secret Key và Bank Public ID'); return; }
-            await db.collection('settings').doc('apipay').set({ accessKey: accessKey, secretKey: secretKey, bankPublicId: bankPublicId, signingSecret: signingSecret });
+            await db.collection('settings').doc('apipay').set({ accessKey: accessKey, secretKey: secretKey, bankPublicId: bankPublicId, signingSecret: signingSecret, bankName: bankName, accountNumber: accountNumber, accountName: accountName });
             document.getElementById('apipayStatus').innerHTML = '<span style="color:green">✓ Đã lưu thành công!</span>';
         }
 
