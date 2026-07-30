@@ -1434,10 +1434,9 @@
         document.body.appendChild(overlay);
         overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
         try {
-            var bearerToken = btoa(apipaySettings.accessKey + ':' + apipaySettings.secretKey);
-            var res = await fetch('https://app.apipay.vn/v1/client/payment-requests', {
+            var res = await fetch('/api/create-qr', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + bearerToken },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     bankPublicId: apipaySettings.bankPublicId,
                     amount: total,
