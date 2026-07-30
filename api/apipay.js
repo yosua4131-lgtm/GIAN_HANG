@@ -58,6 +58,38 @@ async function fsQuery(collection, filters) {
     });
 }
 
+async function fsGet(collection, docId) {
+    const token = await getAccessToken();
+    const r = await fetch(FIRESTORE + '/' + collection + '/' + docId, {
+        headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!r.ok) return null;
+    const doc = await r.json();
+    if (!doc.fields) return null;
+    const obj = {};
+    for (var k in doc.fields) {
+        var v = doc.fields[k];
+        if ('stringValue' in v) obj[k] = v.stringValue;
+        else if ('integerValue' in v) obj[k] = Number(v.integerValue);
+        else if ('booleanValue' in v) obj[k] = v.booleanValue;
+        else if ('arrayValue' in v) {
+            obj[k] = (v.arrayValue.values || []).map(function(item) {
+                if (item.mapValue && item.mapValue.fields) {
+                    var m = {};
+                    for (var mk in item.mapValue.fields) {
+                        var mv = item.mapValue.fields[mk];
+                        if ('stringValue' in mv) m[mk] = mv.stringValue;
+                        else if ('integerValue' in mv) m[mk] = Number(mv.integerValue);
+                    }
+                    return m;
+                }
+                return item.stringValue || '';
+            });
+        }
+    }
+    return obj;
+}
+
 async function fsUpdate(collection, docId, data) {
     const token = await getAccessToken();
     const fields = {};
@@ -116,6 +148,56 @@ module.exports = async function handler(req, res) {
         paymentVerified: true,
         paidAt: new Date().toISOString()
     });
+
+    // Gui thong bao Telegram
+    try {
+        var teleSettings = await fsGet('settings', 'telegram');
+        var order = await fsGet('orders', orderId);
+        if (teleSettings && teleSettings.token && order) {
+            var token = teleSettings.token;
+            var chatId = order.telegramChatId || teleSettings.chatId;
+            var text = '✅ ĐÃ THANH TOÁN!\n\n'
+                + '👤 ' + (order.customer || '') + '\n'
+                + (order.phone ? '📞 ' + order.phone + '\n' : '')
+                + '💰 ' + Number(amount).toLocaleString('vi-VN') + 'đ\n'
+                + '🔖 Mã CK: ' + orderCode + '\n'
+                + '\n💳 Chuyển khoản đã được xác nhận tự động';
+
+            // Gui tin moi
+            await fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: chatId, text: text })
+            });
+
+            // Cap nhat tin cu neu co
+            if (order.telegramMsgId && chatId) {
+                var items = (order.items || []);
+                var itemsText = '';
+                items.forEach(function(i) {
+                    itemsText += '  • ' + (i.name || '') + ' x' + (i.qty || 1) + '\n';
+                });
+                var updatedText = '🛒 ĐƠN HÀNG MỚI!\n\n'
+                    + '👤 ' + (order.customer || '') + '\n'
+                    + (order.phone ? '📞 ' + order.phone + '\n' : '')
+                    + (order.address ? '📍 ' + order.address + '\n' : '')
+                    + '\n' + itemsText + '\n'
+                    + '💰 Tổng: ' + Number(order.total || amount).toLocaleString('vi-VN') + 'đ\n'
+                    + '💳 Chuyển khoản\n'
+                    + '🔖 Mã CK: ' + orderCode
+                    + '\n\n✅ Đã thanh toán';
+                var keyboard = { inline_keyboard: [
+                    [{ text: '✅ Đã thanh toán', callback_data: orderId + ':confirmed' }, { text: 'Đang chuẩn bị', callback_data: orderId + ':preparing' }],
+                    [{ text: 'Đang giao', callback_data: orderId + ':delivering' }, { text: 'Hoàn thành', callback_data: orderId + ':done' }]
+                ]};
+                await fetch('https://api.telegram.org/bot' + token + '/editMessageText', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chat_id: chatId, message_id: order.telegramMsgId, text: updatedText, reply_markup: keyboard })
+                });
+            }
+        }
+    } catch(e) {}
 
     return res.status(200).json({ success: true, orderId: orderId });
 };
