@@ -413,6 +413,13 @@
             loadProducts();
         }
 
+        async function toggleRequired(id, checked) {
+            await db.collection('categories').doc(id).update({ required: checked });
+            var cat = allCategories.find(c => c.id === id);
+            if (cat) cat.required = checked;
+            loadProducts();
+        }
+
         async function deleteCategory(id) {
             if (!confirm('Xóa loại này? Các món trong loại sẽ thành "không có loại".')) return;
             const prods = allProducts.filter(p => p.categoryId === id);
@@ -563,7 +570,8 @@
                 html += '<div class="cat-section">';
                 html += '<div class="cat-header" onclick="toggleCat(\'' + cat.id + '\')">';
                 html += '<h3>' + (isOpen ? '📂' : '📁') + ' ' + cat.name + ' <span class="cat-count">(' + prods.length + ' món)</span></h3>';
-                html += '<div class="cat-actions">';
+                html += '<div class="cat-actions" style="display:flex;align-items:center;gap:8px">';
+                html += '<label onclick="event.stopPropagation()" style="display:flex;align-items:center;gap:4px;font-size:0.78rem;color:' + (cat.required ? '#e03131' : '#999') + ';cursor:pointer;white-space:nowrap" title="Khách bắt buộc chọn ít nhất 1 món loại này"><input type="checkbox" ' + (cat.required ? 'checked' : '') + ' onchange="toggleRequired(\'' + cat.id + '\',this.checked)" style="accent-color:#e03131">Bắt buộc</label>';
                 html += '<button onclick="event.stopPropagation(); renameCategory(\'' + cat.id + '\')">Sửa tên</button>';
                 html += '<button onclick="event.stopPropagation(); deleteCategory(\'' + cat.id + '\')">Xóa</button>';
                 html += '</div></div>';

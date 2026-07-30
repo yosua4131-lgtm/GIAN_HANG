@@ -1348,6 +1348,12 @@
     async function submitOrder(e) {
         e.preventDefault();
         if (cart.length === 0) return;
+        var requiredCats = allCategories.filter(function(c) { return c.required; });
+        for (var ri = 0; ri < requiredCats.length; ri++) {
+            var rc = requiredCats[ri];
+            var hasIt = cart.some(function(item) { var p = allProducts.find(function(x){return x.id===item.id}); return p && p.categoryId === rc.id; });
+            if (!hasIt) { alert('Vui lòng chọn ít nhất 1 món loại "' + rc.name + '"'); return; }
+        }
         const addrSel = document.getElementById('customerAddrSelect').value;
         const addrCustom = document.getElementById('customerAddrCustom').value.trim();
         const address = addrSel === '__custom' ? addrCustom : addrSel;
