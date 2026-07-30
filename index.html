@@ -1232,14 +1232,10 @@
             + '<input type="text" id="customerPhone" placeholder="Số điện thoại (tùy chọn)">'
             + '<select id="customerAddrSelect" onchange="toggleCustomAddr()" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:var(--radius-s);font-family:inherit;font-size:0.88rem;background:var(--surface);margin-bottom:8px">' + addrOpts + '</select>'
             + '<input type="text" id="customerAddrCustom" placeholder="Nhập địa chỉ của bạn..." style="display:none">'
-            + '<div class="pay-methods">'
-            + '<div class="pay-opt active" onclick="selectPay(\'cash\',this)"><span>💵</span>Tiền mặt</div>'
-            + '<div class="pay-opt" onclick="selectPay(\'transfer\',this)"><span>📱</span>Chuyển khoản</div>'
-            + '</div>'
-            + '<input type="hidden" id="payMethod" value="cash">'
+            + '<input type="hidden" id="payMethod" value="transfer">'
             + '<div id="qrSection" style="display:none"></div>'
             + '<textarea id="customerNote" placeholder="Ghi chú..."></textarea>'
-            + '<button type="submit" class="btn-submit" id="submitBtn">Đặt hàng</button></form></div>';
+            + '<button type="submit" class="btn-submit" id="submitBtn">Chuyển tới thanh toán</button></form></div>';
         m.innerHTML = h;
     }
 
@@ -1380,15 +1376,17 @@
             read: false,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        sendTelegramNotify(order, docRef.id);
-        if (pushSubs.length) {
-            fetch('/api/push', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title: 'Đơn hàng mới!', body: order.customer + ' — ' + fmtPrice(order.total) + 'đ', subs: pushSubs })
-            }).catch(function(){});
-        }
         var isTransfer = payMethod === 'transfer';
+        if (!(isTransfer && apipaySettings)) {
+            sendTelegramNotify(order, docRef.id);
+            if (pushSubs.length) {
+                fetch('/api/push', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title: 'Đơn hàng mới!', body: order.customer + ' — ' + fmtPrice(order.total) + 'đ', subs: pushSubs })
+                }).catch(function(){});
+            }
+        }
         cart = [];
         selectedAddons = {};
         updateCart();
