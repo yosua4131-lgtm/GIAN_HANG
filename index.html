@@ -1524,13 +1524,13 @@
         var h = '<div class="cart-sheet">'
             + '<div class="cart-header"><h3>🎫 Combo Tem Happy House</h3><button class="cart-close" onclick="closeCart()">&times;</button></div>'
             + '<p style="font-size:0.88rem;color:#555;margin-bottom:16px">Mua combo tem — mỗi bữa chỉ cần chọn món, không cần thanh toán!</p>'
-            + '<div style="background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px">'
+            + '<div style="background:#f8f9fa;border:1.5px solid #eee;border-radius:14px;padding:16px;margin-bottom:16px">'
             + '<p style="font-weight:700;font-size:0.95rem;margin-bottom:10px">📱 Tra cứu tem của bạn</p>'
-            + '<input type="text" id="stampShopPhone" placeholder="Nhập số điện thoại" style="width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;font-size:0.95rem;font-family:inherit;margin-bottom:10px;box-sizing:border-box">'
-            + '<button type="button" onclick="lookupStampShop()" style="background:var(--primary);color:#fff;border:none;padding:10px 0;border-radius:10px;font-size:0.9rem;font-weight:700;cursor:pointer;width:100%;letter-spacing:0.3px">🔍 Xem tem của tôi</button>'
+            + '<input type="text" id="stampShopPhone" placeholder="Nhập số điện thoại" style="width:100%;padding:12px 14px;border:1.5px solid #ddd;border-radius:10px;font-size:0.95rem;font-family:inherit;margin-bottom:10px;box-sizing:border-box">'
+            + '<button type="button" onclick="lookupStampShop()" style="background:#e63946;color:#fff;border:none;padding:10px 0;border-radius:10px;font-size:0.9rem;font-weight:700;cursor:pointer;width:100%;letter-spacing:0.3px">🔍 Xem tem của tôi</button>'
             + '<div id="stampShopMyStamps" style="margin-top:10px"></div>'
             + '</div>'
-            + '<div style="background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:16px">'
+            + '<div style="background:#f8f9fa;border:1.5px solid #eee;border-radius:14px;padding:16px">'
             + '<p style="font-weight:700;font-size:0.95rem;margin-bottom:12px">🛒 Mua gói tem</p>'
             + '<div id="stampShopPackages" style="display:flex;gap:12px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch">';
         if (stampPackages.length === 0) {
@@ -1538,12 +1538,12 @@
         } else {
             stampPackages.forEach(function(p) {
                 var perUnit = Math.round(p.price / p.quantity);
-                h += '<div style="min-width:170px;max-width:190px;flex-shrink:0;background:#fff;border:2px solid var(--line);border-radius:14px;padding:18px 14px;text-align:center;transition:border-color 0.2s">'
+                h += '<div style="min-width:170px;max-width:190px;flex-shrink:0;background:#fff;border:2px solid #eee;border-radius:14px;padding:18px 14px;text-align:center">'
                     + '<div style="font-size:2.2rem;margin-bottom:8px">🎫</div>'
                     + '<strong style="font-size:1rem;display:block;margin-bottom:6px">' + p.name + '</strong>'
                     + '<span style="font-size:0.8rem;color:#888;display:block;margin-bottom:4px">' + (p.categoryName || '') + '</span>'
                     + '<div style="background:#fff3cd;border-radius:8px;padding:4px 8px;margin-bottom:12px;display:inline-block"><span style="font-size:0.82rem;font-weight:600;color:#795548">' + p.quantity + ' tem · ~' + fmtPrice(perUnit) + '/tem</span></div>'
-                    + '<button onclick="buyStampFromShop(\'' + p.id + '\')" style="background:var(--primary);color:#fff;border:none;padding:10px 0;border-radius:10px;font-size:0.95rem;font-weight:700;cursor:pointer;width:100%;box-shadow:0 2px 8px rgba(245,61,45,0.25)">' + fmtPrice(p.price) + '</button>'
+                    + '<button onclick="buyStampFromShop(\'' + p.id + '\')" style="background:#e63946;color:#fff;border:none;padding:10px 0;border-radius:10px;font-size:0.95rem;font-weight:700;cursor:pointer;width:100%;box-shadow:0 2px 8px rgba(230,57,70,0.3)">' + fmtPrice(p.price) + '</button>'
                     + '</div>';
             });
         }
