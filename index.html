@@ -1405,22 +1405,7 @@
         var el = document.getElementById('stampInfo');
         if (!el) return;
         var hasStamps = customerStamps.filter(function(s) { return s.remaining > 0; });
-        if (hasStamps.length === 0) {
-            if (stampPackages.length > 0 && customerStampPhone) {
-                el.innerHTML = '<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:10px 14px;margin:8px 0;font-size:0.85rem">'
-                    + '<p style="font-weight:600;margin-bottom:6px">🎫 Chưa có tem — Mua gói tem?</p>'
-                    + stampPackages.map(function(p) {
-                        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #ffe08a">'
-                            + '<span>' + p.name + ' (' + p.quantity + ' tem ' + (p.categoryName || '') + ')</span>'
-                            + '<button type="button" onclick="buyStampPackage(\'' + p.id + '\')" style="background:var(--primary);color:#fff;border:none;padding:4px 12px;border-radius:6px;font-size:0.8rem;cursor:pointer">' + fmtPrice(p.price) + '</button>'
-                            + '</div>';
-                    }).join('')
-                    + '</div>';
-            } else {
-                el.innerHTML = '';
-            }
-            return;
-        }
+        if (hasStamps.length === 0) { el.innerHTML = ''; return; }
         var h = '<div style="background:#d4edda;border:1px solid #28a745;border-radius:10px;padding:10px 14px;margin:8px 0;font-size:0.85rem">'
             + '<p style="font-weight:600;margin-bottom:4px">🎫 Tem của bạn</p>';
         hasStamps.forEach(function(s) {
@@ -1428,16 +1413,6 @@
                 + '<span>' + (s.categoryName || '') + '</span>'
                 + '<strong>' + s.remaining + ' tem</strong></div>';
         });
-        if (stampPackages.length > 0) {
-            h += '<div style="border-top:1px solid #a3d9a5;margin-top:6px;padding-top:6px"><p style="font-weight:600;font-size:0.82rem;margin-bottom:4px">Mua thêm tem:</p>';
-            stampPackages.forEach(function(p) {
-                h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">'
-                    + '<span style="font-size:0.82rem">' + p.name + ' (' + p.quantity + ' tem)</span>'
-                    + '<button type="button" onclick="buyStampPackage(\'' + p.id + '\')" style="background:var(--primary);color:#fff;border:none;padding:3px 10px;border-radius:6px;font-size:0.78rem;cursor:pointer">' + fmtPrice(p.price) + '</button>'
-                    + '</div>';
-            });
-            h += '</div>';
-        }
         h += '</div>';
         el.innerHTML = h;
     }
