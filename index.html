@@ -1473,26 +1473,6 @@
         if (!phone) { alert('Vui lòng nhập số điện thoại trước'); return; }
         if (!confirm('Mua gói "' + pkg.name + '" với giá ' + fmtPrice(pkg.price) + '?')) return;
         var code = 'TEM-' + Date.now().toString(36).toUpperCase().slice(-4) + Math.random().toString(36).toUpperCase().slice(2, 5);
-        var matchField = (pkg.productIds && pkg.productIds.length > 0) ? null : 'categoryId';
-        var existing = matchField ? await db.collection('customerStamps').where('phone', '==', phone).where('categoryId', '==', pkg.categoryId).get() : { empty: true };
-        if (!existing.empty) {
-            var doc = existing.docs[0];
-            var d = doc.data();
-            await db.collection('customerStamps').doc(doc.id).update({
-                remaining: (d.remaining || 0) + pkg.quantity,
-                total: (d.total || 0) + pkg.quantity
-            });
-        } else {
-            var stampData = {
-                phone: phone, name: '', categoryId: pkg.categoryId || '', categoryName: pkg.categoryName || '',
-                remaining: pkg.quantity, total: pkg.quantity, code: code, type: 'purchase',
-                packageId: pkgId, createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-            if (pkg.productIds && pkg.productIds.length > 0) {
-                stampData.productIds = pkg.productIds;
-            }
-            await db.collection('customerStamps').add(stampData);
-        }
         var stampPayCode = 'TEM' + Date.now().toString(36).toUpperCase().slice(-6) + Math.random().toString(36).toUpperCase().slice(2, 4);
         var stampOrderRef = await db.collection('orders').add({
             customer: phone, phone: phone, address: '',
@@ -1501,16 +1481,17 @@
             items: [{ name: pkg.name, price: pkg.price, qty: 1, category: 'Tem Happy' }],
             total: pkg.price, status: 'pending', isStampPurchase: true,
             stampPackageId: pkgId, stampCode: code,
+            stampPhone: phone,
+            stampCategoryId: pkg.categoryId || '',
+            stampCategoryName: pkg.categoryName || '',
+            stampQuantity: pkg.quantity,
+            stampProductIds: pkg.productIds || [],
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         await db.collection('notifications').add({
             type: 'new_order', message: 'Mua tem từ ' + phone + ' - ' + fmtPrice(pkg.price),
             read: false, createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        var snap2 = await db.collection('customerStamps').where('phone', '==', phone).get();
-        customerStamps = [];
-        snap2.forEach(function(doc) { customerStamps.push({ id: doc.id, ...doc.data() }); });
-        renderStampInfo();
         if (apipaySettings) {
             var shortStampId = stampOrderRef.id.slice(-6).toUpperCase();
             showApiPayQR(stampPayCode, pkg.price, shortStampId, stampOrderRef.id);

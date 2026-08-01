@@ -90,6 +90,24 @@ async function fsGet(collection, docId) {
     return obj;
 }
 
+async function fsCreate(collection, data) {
+    const token = await getAccessToken();
+    const fields = {};
+    for (var k in data) {
+        if (typeof data[k] === 'string') fields[k] = { stringValue: data[k] };
+        else if (typeof data[k] === 'number') fields[k] = { integerValue: String(data[k]) };
+        else if (typeof data[k] === 'boolean') fields[k] = { booleanValue: data[k] };
+        else if (Array.isArray(data[k])) {
+            fields[k] = { arrayValue: { values: data[k].map(function(v) { return { stringValue: String(v) }; }) } };
+        }
+    }
+    await fetch(FIRESTORE + '/' + collection, {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: fields })
+    });
+}
+
 async function fsUpdate(collection, docId, data) {
     const token = await getAccessToken();
     const fields = {};
@@ -148,6 +166,44 @@ module.exports = async function handler(req, res) {
         paymentVerified: true,
         paidAt: new Date().toISOString()
     });
+
+    // Tao tem neu la don mua tem
+    try {
+        var orderData = await fsGet('orders', orderId);
+        if (orderData && orderData.isStampPurchase && orderData.stampPhone && orderData.stampQuantity) {
+            var stampPhone = orderData.stampPhone;
+            var stampCatId = orderData.stampCategoryId || '';
+            var stampCatName = orderData.stampCategoryName || '';
+            var stampQty = Number(orderData.stampQuantity);
+            var stampCode = orderData.stampCode || '';
+            var stampProductIds = orderData.stampProductIds || [];
+
+            var existingStamps = stampCatId ? await fsQuery('customerStamps', [
+                { field: 'phone', op: 'EQUAL', value: stampPhone },
+                { field: 'categoryId', op: 'EQUAL', value: stampCatId }
+            ]) : [];
+
+            if (existingStamps.length > 0) {
+                var existDoc = await fsGet('customerStamps', existingStamps[0].id);
+                if (existDoc) {
+                    await fsUpdate('customerStamps', existingStamps[0].id, {
+                        remaining: (Number(existDoc.remaining) || 0) + stampQty,
+                        total: (Number(existDoc.total) || 0) + stampQty
+                    });
+                }
+            } else {
+                var stampData = {
+                    phone: stampPhone, name: '', categoryId: stampCatId, categoryName: stampCatName,
+                    remaining: stampQty, total: stampQty, code: stampCode, type: 'purchase',
+                    createdAt: new Date().toISOString()
+                };
+                if (stampProductIds.length > 0) {
+                    stampData.productIds = stampProductIds;
+                }
+                await fsCreate('customerStamps', stampData);
+            }
+        }
+    } catch(e) {}
 
     // Gui thong bao Telegram
     try {
