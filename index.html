@@ -1417,16 +1417,29 @@
         el.innerHTML = h;
     }
 
+    function stampMatchesItem(stamp, cartItem) {
+        var p = allProducts.find(function(x) { return x.id === cartItem.id; });
+        if (!p) return false;
+        if (stamp.productIds && stamp.productIds.length > 0) {
+            return stamp.productIds.indexOf(cartItem.id) !== -1;
+        }
+        return stamp.categoryId && p.categoryId && stamp.categoryId === p.categoryId;
+    }
+
     function calcStampDiscount() {
         if (customerStamps.length === 0) return 0;
         var discount = 0;
+        var tempRemaining = {};
+        customerStamps.forEach(function(s) { tempRemaining[s.id] = s.remaining || 0; });
         cart.forEach(function(c) {
-            var p = allProducts.find(function(x) { return x.id === c.id; });
-            if (!p || !p.categoryId) return;
-            var stamp = customerStamps.find(function(s) { return s.categoryId === p.categoryId && s.remaining > 0; });
-            if (stamp) {
-                var use = Math.min(c.qty, stamp.remaining);
-                discount += c.price * use;
+            for (var i = 0; i < customerStamps.length; i++) {
+                var s = customerStamps[i];
+                if (tempRemaining[s.id] > 0 && stampMatchesItem(s, c)) {
+                    var use = Math.min(c.qty, tempRemaining[s.id]);
+                    discount += c.price * use;
+                    tempRemaining[s.id] -= use;
+                    break;
+                }
             }
         });
         return discount;
@@ -1435,18 +1448,16 @@
     function calcStampUsage() {
         var usage = [];
         if (customerStamps.length === 0) return usage;
-        var tempStamps = {};
-        customerStamps.forEach(function(s) { tempStamps[s.id] = { remaining: s.remaining, categoryId: s.categoryId }; });
+        var tempRemaining = {};
+        customerStamps.forEach(function(s) { tempRemaining[s.id] = s.remaining || 0; });
         cart.forEach(function(c) {
-            var p = allProducts.find(function(x) { return x.id === c.id; });
-            if (!p || !p.categoryId) return;
-            for (var sid in tempStamps) {
-                var ts = tempStamps[sid];
-                if (ts.categoryId === p.categoryId && ts.remaining > 0) {
-                    var use = Math.min(c.qty, ts.remaining);
+            for (var i = 0; i < customerStamps.length; i++) {
+                var s = customerStamps[i];
+                if (tempRemaining[s.id] > 0 && stampMatchesItem(s, c)) {
+                    var use = Math.min(c.qty, tempRemaining[s.id]);
                     if (use > 0) {
-                        usage.push({ stampId: sid, qty: use });
-                        ts.remaining -= use;
+                        usage.push({ stampId: s.id, qty: use });
+                        tempRemaining[s.id] -= use;
                     }
                     break;
                 }
@@ -1462,7 +1473,8 @@
         if (!phone) { alert('Vui lòng nhập số điện thoại trước'); return; }
         if (!confirm('Mua gói "' + pkg.name + '" với giá ' + fmtPrice(pkg.price) + '?')) return;
         var code = 'TEM-' + Date.now().toString(36).toUpperCase().slice(-4) + Math.random().toString(36).toUpperCase().slice(2, 5);
-        var existing = await db.collection('customerStamps').where('phone', '==', phone).where('categoryId', '==', pkg.categoryId).get();
+        var matchField = (pkg.productIds && pkg.productIds.length > 0) ? null : 'categoryId';
+        var existing = matchField ? await db.collection('customerStamps').where('phone', '==', phone).where('categoryId', '==', pkg.categoryId).get() : { empty: true };
         if (!existing.empty) {
             var doc = existing.docs[0];
             var d = doc.data();
@@ -1471,11 +1483,15 @@
                 total: (d.total || 0) + pkg.quantity
             });
         } else {
-            await db.collection('customerStamps').add({
-                phone: phone, name: '', categoryId: pkg.categoryId, categoryName: pkg.categoryName,
+            var stampData = {
+                phone: phone, name: '', categoryId: pkg.categoryId || '', categoryName: pkg.categoryName || '',
                 remaining: pkg.quantity, total: pkg.quantity, code: code, type: 'purchase',
                 packageId: pkgId, createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            };
+            if (pkg.productIds && pkg.productIds.length > 0) {
+                stampData.productIds = pkg.productIds;
+            }
+            await db.collection('customerStamps').add(stampData);
         }
         var stampPayCode = 'TEM' + Date.now().toString(36).toUpperCase().slice(-6) + Math.random().toString(36).toUpperCase().slice(2, 4);
         var stampOrderRef = await db.collection('orders').add({

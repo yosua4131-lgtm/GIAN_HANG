@@ -318,9 +318,19 @@
                 <h3 style="font-size:1rem;margin-bottom:12px" id="stampFormTitle">Tạo gói tem mới</h3>
                 <div style="display:flex;flex-direction:column;gap:10px">
                     <input type="text" id="stampName" placeholder="Tên gói (VD: Tem Cơm 20 suất)" style="padding:10px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:0.9rem">
-                    <select id="stampCategoryId" style="padding:10px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:0.9rem">
-                        <option value="">-- Chọn loại món --</option>
-                    </select>
+                    <div style="display:flex;gap:8px;margin-bottom:4px">
+                        <label style="display:flex;align-items:center;gap:4px;font-size:0.88rem;font-weight:600;cursor:pointer"><input type="radio" name="stampMode" value="category" checked onchange="toggleStampMode()"> Theo loại món</label>
+                        <label style="display:flex;align-items:center;gap:4px;font-size:0.88rem;font-weight:600;cursor:pointer"><input type="radio" name="stampMode" value="products" onchange="toggleStampMode()"> Chọn từng món</label>
+                    </div>
+                    <div id="stampModeCategory">
+                        <select id="stampCategoryId" style="width:100%;padding:10px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:0.9rem">
+                            <option value="">-- Chọn loại món --</option>
+                        </select>
+                    </div>
+                    <div id="stampModeProducts" style="display:none;max-height:200px;overflow-y:auto;border:1.5px solid #ddd;border-radius:8px;padding:10px 14px">
+                        <p style="font-size:0.82rem;color:#888;margin-bottom:8px">Tick chọn các món áp dụng cho tem này:</p>
+                        <div id="stampProductList"></div>
+                    </div>
                     <div style="display:flex;gap:10px">
                         <input type="number" id="stampQty" placeholder="Số lượng tem" min="1" style="flex:1;padding:10px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:0.9rem">
                         <input type="number" id="stampPrice" placeholder="Giá bán (đ)" min="0" style="flex:1;padding:10px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:0.9rem">
@@ -1222,6 +1232,41 @@
             });
         }
 
+        function toggleStampMode() {
+            var mode = document.querySelector('input[name="stampMode"]:checked').value;
+            document.getElementById('stampModeCategory').style.display = mode === 'category' ? 'block' : 'none';
+            document.getElementById('stampModeProducts').style.display = mode === 'products' ? 'block' : 'none';
+            if (mode === 'products') renderStampProductList();
+        }
+
+        function renderStampProductList(selectedIds) {
+            var list = document.getElementById('stampProductList');
+            var sel = selectedIds || [];
+            var h = '';
+            allCategories.forEach(function(cat) {
+                var prods = allProducts.filter(function(p) { return p.categoryId === cat.id; });
+                if (prods.length === 0) return;
+                h += '<p style="font-weight:600;font-size:0.82rem;margin:8px 0 4px;color:#666">' + cat.name + '</p>';
+                prods.forEach(function(p) {
+                    var checked = sel.indexOf(p.id) !== -1 ? ' checked' : '';
+                    h += '<label style="display:flex;align-items:center;gap:6px;padding:3px 0;cursor:pointer;font-size:0.85rem">'
+                        + '<input type="checkbox" class="stamp-product-cb" value="' + p.id + '" data-name="' + (p.name || '').replace(/"/g, '&quot;') + '"' + checked + '>'
+                        + (p.name || '') + '</label>';
+                });
+            });
+            var noCat = allProducts.filter(function(p) { return !p.categoryId; });
+            if (noCat.length) {
+                h += '<p style="font-weight:600;font-size:0.82rem;margin:8px 0 4px;color:#666">Khác</p>';
+                noCat.forEach(function(p) {
+                    var checked = sel.indexOf(p.id) !== -1 ? ' checked' : '';
+                    h += '<label style="display:flex;align-items:center;gap:6px;padding:3px 0;cursor:pointer;font-size:0.85rem">'
+                        + '<input type="checkbox" class="stamp-product-cb" value="' + p.id + '" data-name="' + (p.name || '').replace(/"/g, '&quot;') + '"' + checked + '>'
+                        + (p.name || '') + '</label>';
+                });
+            }
+            list.innerHTML = h || '<p style="color:#888;font-size:0.85rem">Chưa có sản phẩm</p>';
+        }
+
         function openStampPackageForm(id) {
             updateStampCategorySelects();
             var form = document.getElementById('stampPackageForm');
@@ -1233,9 +1278,17 @@
                 editingPackageId = id;
                 document.getElementById('stampFormTitle').textContent = 'Sửa gói tem';
                 document.getElementById('stampName').value = pkg.name || '';
-                document.getElementById('stampCategoryId').value = pkg.categoryId || '';
                 document.getElementById('stampQty').value = pkg.quantity || '';
                 document.getElementById('stampPrice').value = pkg.price || '';
+                if (pkg.productIds && pkg.productIds.length > 0) {
+                    document.querySelector('input[name="stampMode"][value="products"]').checked = true;
+                    toggleStampMode();
+                    renderStampProductList(pkg.productIds);
+                } else {
+                    document.querySelector('input[name="stampMode"][value="category"]').checked = true;
+                    toggleStampMode();
+                    document.getElementById('stampCategoryId').value = pkg.categoryId || '';
+                }
             } else {
                 editingPackageId = null;
                 document.getElementById('stampFormTitle').textContent = 'Tạo gói tem mới';
@@ -1243,6 +1296,8 @@
                 document.getElementById('stampCategoryId').value = '';
                 document.getElementById('stampQty').value = '';
                 document.getElementById('stampPrice').value = '';
+                document.querySelector('input[name="stampMode"][value="category"]').checked = true;
+                toggleStampMode();
             }
         }
 
@@ -1263,12 +1318,29 @@
 
         async function saveStampPackage() {
             var name = document.getElementById('stampName').value.trim();
-            var categoryId = document.getElementById('stampCategoryId').value;
             var quantity = parseInt(document.getElementById('stampQty').value);
             var price = parseInt(document.getElementById('stampPrice').value);
-            if (!name || !categoryId || !quantity || !price) { alert('Vui lòng điền đầy đủ'); return; }
-            var catName = (allCategories.find(function(c) { return c.id === categoryId; }) || {}).name || '';
-            var data = { name: name, categoryId: categoryId, categoryName: catName, quantity: quantity, price: price, active: true };
+            if (!name || !quantity || !price) { alert('Vui lòng điền đầy đủ'); return; }
+            var mode = document.querySelector('input[name="stampMode"]:checked').value;
+            var data = { name: name, quantity: quantity, price: price, active: true, mode: mode };
+            if (mode === 'category') {
+                var categoryId = document.getElementById('stampCategoryId').value;
+                if (!categoryId) { alert('Vui lòng chọn loại món'); return; }
+                var catName = (allCategories.find(function(c) { return c.id === categoryId; }) || {}).name || '';
+                data.categoryId = categoryId;
+                data.categoryName = catName;
+                data.productIds = [];
+                data.productNames = [];
+            } else {
+                var cbs = document.querySelectorAll('.stamp-product-cb:checked');
+                if (cbs.length === 0) { alert('Vui lòng chọn ít nhất 1 món'); return; }
+                var pIds = [], pNames = [];
+                cbs.forEach(function(cb) { pIds.push(cb.value); pNames.push(cb.getAttribute('data-name')); });
+                data.productIds = pIds;
+                data.productNames = pNames;
+                data.categoryId = '';
+                data.categoryName = pNames.join(', ');
+            }
             if (editingPackageId) {
                 await db.collection('stampPackages').doc(editingPackageId).update(data);
             } else {
@@ -1344,7 +1416,7 @@
                 h += '<div style="background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:8px">'
                     + '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'
                     + '<div><strong>' + p.name + '</strong> ' + statusBadge
-                    + '<br><span style="font-size:0.85rem;color:#666">Loại: ' + (p.categoryName || '') + ' · ' + p.quantity + ' tem · ' + formatPrice(p.price) + '</span></div>'
+                    + '<br><span style="font-size:0.85rem;color:#666">' + (p.mode === 'products' ? 'Món: ' : 'Loại: ') + (p.categoryName || '') + ' · ' + p.quantity + ' tem · ' + formatPrice(p.price) + '</span></div>'
                     + '<div style="display:flex;gap:6px">'
                     + '<button class="btn-secondary" style="font-size:0.78rem;padding:4px 10px" onclick="openStampPackageForm(\'' + p.id + '\')">Sửa</button>'
                     + '<button class="btn-secondary" style="font-size:0.78rem;padding:4px 10px" onclick="toggleStampPackage(\'' + p.id + '\',' + !p.active + ')">' + (p.active ? 'Ẩn' : 'Hiện') + '</button>'
