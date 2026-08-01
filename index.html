@@ -1477,8 +1477,34 @@
         if (!pkg) return;
         var phone = customerStampPhone;
         if (!phone) { alert('Vui lòng nhập số điện thoại trước'); return; }
-        if (!confirm('Mua gói "' + pkg.name + '" với giá ' + fmtPrice(pkg.price) + '?')) return;
+        if (!confirm(pkg.price > 0 ? 'Mua gói "' + pkg.name + '" với giá ' + fmtPrice(pkg.price) + '?' : 'Nhận gói "' + pkg.name + '" miễn phí?')) return;
         var code = 'TEM-' + Date.now().toString(36).toUpperCase().slice(-4) + Math.random().toString(36).toUpperCase().slice(2, 5);
+        var isFree = !pkg.price || pkg.price <= 0;
+        if (isFree) {
+            var existing = pkg.categoryId ? await db.collection('customerStamps').where('phone', '==', phone).where('categoryId', '==', pkg.categoryId).get() : { empty: true };
+            if (!existing.empty) {
+                var doc = existing.docs[0];
+                var d = doc.data();
+                await db.collection('customerStamps').doc(doc.id).update({
+                    remaining: (d.remaining || 0) + pkg.quantity,
+                    total: (d.total || 0) + pkg.quantity
+                });
+            } else {
+                var stampData = {
+                    phone: phone, name: '', categoryId: pkg.categoryId || '', categoryName: pkg.categoryName || '',
+                    remaining: pkg.quantity, total: pkg.quantity, code: code, type: 'free',
+                    packageId: pkgId, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                if (pkg.productIds && pkg.productIds.length > 0) stampData.productIds = pkg.productIds;
+                await db.collection('customerStamps').add(stampData);
+            }
+            var snap2 = await db.collection('customerStamps').where('phone', '==', phone).get();
+            customerStamps = [];
+            snap2.forEach(function(doc) { customerStamps.push({ id: doc.id, ...doc.data() }); });
+            renderStampInfo();
+            showToast('Đã nhận ' + pkg.quantity + ' tem miễn phí!', 3000);
+            return;
+        }
         var stampPayCode = 'TEM' + Date.now().toString(36).toUpperCase().slice(-6) + Math.random().toString(36).toUpperCase().slice(2, 4);
         var stampOrderRef = await db.collection('orders').add({
             customer: phone, phone: phone, address: '',
