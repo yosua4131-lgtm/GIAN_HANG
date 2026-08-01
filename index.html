@@ -1410,14 +1410,21 @@
     function renderStampInfo() {
         var el = document.getElementById('stampInfo');
         if (!el) return;
-        var hasStamps = customerStamps.filter(function(s) { return s.remaining > 0; });
-        if (hasStamps.length === 0) { el.innerHTML = ''; return; }
+        var relevant = customerStamps.filter(function(s) {
+            if (s.remaining <= 0) return false;
+            return cart.some(function(c) { return stampMatchesItem(s, c); });
+        });
+        if (relevant.length === 0) { el.innerHTML = ''; return; }
         var h = '<div style="background:#d4edda;border:1px solid #28a745;border-radius:10px;padding:10px 14px;margin:8px 0;font-size:0.85rem">'
-            + '<p style="font-weight:600;margin-bottom:4px">🎫 Tem của bạn</p>';
-        hasStamps.forEach(function(s) {
-            h += '<div style="display:flex;justify-content:space-between;padding:3px 0">'
+            + '<p style="font-weight:600;margin-bottom:4px">🎫 Tem áp dụng cho đơn này</p>';
+        relevant.forEach(function(s) {
+            var matchNames = cart.filter(function(c) { return stampMatchesItem(s, c); }).map(function(c) { return c.name; });
+            h += '<div style="padding:3px 0">'
+                + '<div style="display:flex;justify-content:space-between">'
                 + '<span>' + (s.categoryName || '') + '</span>'
-                + '<strong>' + s.remaining + ' tem</strong></div>';
+                + '<strong>' + s.remaining + ' tem</strong></div>'
+                + '<div style="font-size:0.78rem;color:#555;margin-top:1px">Áp dụng: ' + matchNames.join(', ') + '</div>'
+                + '</div>';
         });
         h += '</div>';
         el.innerHTML = h;
