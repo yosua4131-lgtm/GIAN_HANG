@@ -150,10 +150,16 @@
         /* === HERO BANNER === */
         .hero {
             background: linear-gradient(135deg, #f53d2d 0%, #ff6633 50%, #ffa726 100%);
+            background-size: 200% 200%;
+            animation: heroShift 4s ease infinite;
             padding: 24px 20px;
             color: #fff;
             position: relative;
             overflow: hidden;
+        }
+        @keyframes heroShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
         }
         .hero-inner {
             max-width: 1100px;
