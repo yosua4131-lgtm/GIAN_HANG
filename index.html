@@ -1213,6 +1213,10 @@
         renderCartContent();
         m.classList.remove('hidden');
         m.onclick = function(e) { if (e.target === m) closeCart(); };
+        var savedPhone = localStorage.getItem('_customerPhone') || '';
+        if (savedPhone && savedPhone.length >= 4 && customerStamps.length === 0) {
+            onPhoneInput(savedPhone);
+        }
     }
     function closeCart() { document.getElementById('cartModal').classList.add('hidden'); }
 
@@ -1261,9 +1265,11 @@
         allAddresses.forEach(a => { addrOpts += '<option value="' + a.name.replace(/"/g, '&quot;') + '">' + a.name + '</option>'; });
         addrOpts += '<option value="__custom">Nhập địa chỉ khác...</option>';
 
+        var savedName = localStorage.getItem('_customerName') || '';
+        var savedPhone = localStorage.getItem('_customerPhone') || '';
         h += '<form class="cart-form" onsubmit="submitOrder(event)">'
-            + '<input type="text" id="customerName" placeholder="Tên của bạn" required>'
-            + '<input type="text" id="customerPhone" placeholder="Số điện thoại" oninput="onPhoneInput(this.value)">'
+            + '<input type="text" id="customerName" placeholder="Tên của bạn" required value="' + savedName.replace(/"/g,'&quot;') + '">'
+            + '<input type="text" id="customerPhone" placeholder="Số điện thoại" oninput="onPhoneInput(this.value)" value="' + savedPhone.replace(/"/g,'&quot;') + '">'
             + '<div id="stampInfo"></div>'
             + '<select id="customerAddrSelect" onchange="toggleCustomAddr()" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:var(--radius-s);font-family:inherit;font-size:0.88rem;background:var(--surface);margin-bottom:8px">' + addrOpts + '</select>'
             + '<input type="text" id="customerAddrCustom" placeholder="Nhập địa chỉ của bạn..." style="display:none">'
@@ -1589,9 +1595,13 @@
         var stampDiscount = calcStampDiscount();
         var finalTotal = Math.max(0, orderTotal - stampDiscount);
         var paymentCode = 'DH' + Date.now().toString(36).toUpperCase().slice(-6) + Math.random().toString(36).toUpperCase().slice(2,4);
+        var custName = document.getElementById('customerName').value.trim();
+        var custPhone = document.getElementById('customerPhone').value.trim();
+        localStorage.setItem('_customerName', custName);
+        localStorage.setItem('_customerPhone', custPhone);
         const order = {
-            customer: document.getElementById('customerName').value.trim(),
-            phone: document.getElementById('customerPhone').value.trim(),
+            customer: custName,
+            phone: custPhone,
             address: address,
             payMethod: finalTotal === 0 ? 'stamp' : payMethod,
             transferConfirmed: payMethod === 'transfer' ? transferConfirmed : null,
