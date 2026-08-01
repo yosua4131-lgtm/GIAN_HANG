@@ -149,17 +149,19 @@
 
         /* === HERO BANNER === */
         .hero {
-            background: linear-gradient(135deg, #f53d2d 0%, #ff6633 50%, #ffa726 100%);
-            background-size: 200% 200%;
-            animation: heroShift 4s ease infinite;
+            background: linear-gradient(270deg, #f53d2d, #e91e63, #ff6633, #ffa726, #f53d2d);
+            background-size: 400% 100%;
+            animation: heroShift 6s ease infinite;
             padding: 24px 20px;
             color: #fff;
             position: relative;
             overflow: hidden;
         }
         @keyframes heroShift {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
+            0% { background-position: 0% 50%; }
+            33% { background-position: 50% 50%; }
+            66% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
         .hero-inner {
             max-width: 1100px;
