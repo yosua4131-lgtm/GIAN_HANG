@@ -1390,7 +1390,6 @@
             customerStamps = [];
             snap.forEach(function(doc) { customerStamps.push({ id: doc.id, ...doc.data() }); });
             renderStampInfo();
-            renderCartContent();
         }, 500);
     }
 
