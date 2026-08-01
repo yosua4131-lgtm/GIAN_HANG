@@ -1495,21 +1495,29 @@
                 packageId: pkgId, createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
         }
-        await db.collection('stampOrders').add({
-            phone: phone, packageId: pkgId, packageName: pkg.name,
-            quantity: pkg.quantity, price: pkg.price, code: code,
-            status: 'pending', createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        var stampPayCode = 'TEM' + Date.now().toString(36).toUpperCase().slice(-6) + Math.random().toString(36).toUpperCase().slice(2, 4);
+        var stampOrderRef = await db.collection('orders').add({
+            customer: phone, phone: phone, address: '',
+            payMethod: 'transfer', paymentCode: stampPayCode,
+            note: 'Mua gói tem: ' + pkg.name,
+            items: [{ name: pkg.name, price: pkg.price, qty: 1, category: 'Tem Happy' }],
+            total: pkg.price, status: 'pending', isStampPurchase: true,
+            stampPackageId: pkgId, stampCode: code,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        await db.collection('notifications').add({
+            type: 'new_order', message: 'Mua tem từ ' + phone + ' - ' + fmtPrice(pkg.price),
+            read: false, createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         var snap2 = await db.collection('customerStamps').where('phone', '==', phone).get();
         customerStamps = [];
         snap2.forEach(function(doc) { customerStamps.push({ id: doc.id, ...doc.data() }); });
         renderStampInfo();
-        renderCartContent();
         if (apipaySettings) {
-            var payCode = 'TEM' + Date.now().toString(36).toUpperCase().slice(-6) + Math.random().toString(36).toUpperCase().slice(2, 4);
-            showApiPayQR(payCode, pkg.price, code, null);
+            var shortStampId = stampOrderRef.id.slice(-6).toUpperCase();
+            showApiPayQR(stampPayCode, pkg.price, shortStampId, stampOrderRef.id);
         } else {
-            showToast('Đã mua gói tem! Liên hệ shop để thanh toán.', 4000);
+            showToast('Đã đăng ký gói tem! Liên hệ shop để thanh toán.', 4000);
         }
     }
 
