@@ -998,18 +998,22 @@
     let qrUrl = '';
     let apipaySettings = null;
     let pmSlide = 0;
+    let stampPackages = [];
+    let customerStamps = [];
+    let customerStampPhone = '';
 
     // === MENU ===
     async function loadMenu() {
         const grid = document.getElementById('menuGrid');
-        const [catSnap, prodSnap, addrSnap, payDoc, addonSnap, addonSettDoc, apipayDoc] = await Promise.all([
+        const [catSnap, prodSnap, addrSnap, payDoc, addonSnap, addonSettDoc, apipayDoc, stampPkgSnap] = await Promise.all([
             db.collection('categories').orderBy('order').get(),
             db.collection('products').where('active', '==', true).get(),
             db.collection('addresses').orderBy('order').get(),
             db.collection('settings').doc('payment').get(),
             db.collection('addons').orderBy('order').get(),
             db.collection('settings').doc('addons').get(),
-            db.collection('settings').doc('apipay').get()
+            db.collection('settings').doc('apipay').get(),
+            db.collection('stampPackages').where('active', '==', true).get()
         ]);
         qrUrl = (payDoc.exists && payDoc.data().qrUrl) ? payDoc.data().qrUrl : '';
         apipaySettings = (apipayDoc.exists && apipayDoc.data().accessKey) ? apipayDoc.data() : null;
@@ -1023,6 +1027,8 @@
         addrSnap.forEach(doc => allAddresses.push({ id: doc.id, ...doc.data() }));
         allAddons = [];
         addonSnap.forEach(doc => allAddons.push({ id: doc.id, ...doc.data() }));
+        stampPackages = [];
+        stampPkgSnap.forEach(doc => stampPackages.push({ id: doc.id, ...doc.data() }));
 
         if (allProducts.length === 0) {
             grid.innerHTML = '<p class="empty">Chưa có món nào</p>';
@@ -1221,7 +1227,13 @@
                 }
             }
             var addonTotal = Object.values(selectedAddons).reduce(function(s, a) { return s + a.price * a.qty; }, 0);
+            var stampDiscount = calcStampDiscount();
+            var finalTotal = total + addonTotal - stampDiscount;
             h += '<div class="cart-summary"><span>Tổng cộng</span><strong id="cartTotal">' + fmtPrice(total + addonTotal) + '</strong></div>';
+            if (stampDiscount > 0) {
+                h += '<div class="cart-summary" style="color:#27ae60;font-size:0.9rem"><span>🎫 Trừ tem</span><strong>-' + fmtPrice(stampDiscount) + '</strong></div>';
+                h += '<div class="cart-summary" style="border-top:2px solid var(--primary)"><span>Còn phải trả</span><strong style="color:var(--primary)">' + fmtPrice(Math.max(0, finalTotal)) + '</strong></div>';
+            }
         }
         let addrOpts = '<option value="">-- Chọn địa chỉ --</option>';
         allAddresses.forEach(a => { addrOpts += '<option value="' + a.name.replace(/"/g, '&quot;') + '">' + a.name + '</option>'; });
@@ -1229,13 +1241,21 @@
 
         h += '<form class="cart-form" onsubmit="submitOrder(event)">'
             + '<input type="text" id="customerName" placeholder="Tên của bạn" required>'
-            + '<input type="text" id="customerPhone" placeholder="Số điện thoại (tùy chọn)">'
+            + '<input type="text" id="customerPhone" placeholder="Số điện thoại" oninput="onPhoneInput(this.value)">'
+            + '<div id="stampInfo"></div>'
             + '<select id="customerAddrSelect" onchange="toggleCustomAddr()" style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:var(--radius-s);font-family:inherit;font-size:0.88rem;background:var(--surface);margin-bottom:8px">' + addrOpts + '</select>'
             + '<input type="text" id="customerAddrCustom" placeholder="Nhập địa chỉ của bạn..." style="display:none">'
             + '<input type="hidden" id="payMethod" value="transfer">'
             + '<div id="qrSection" style="display:none"></div>'
-            + '<textarea id="customerNote" placeholder="Ghi chú..."></textarea>'
-            + '<button type="submit" class="btn-submit" id="submitBtn">Chuyển tới thanh toán</button></form></div>';
+            + '<textarea id="customerNote" placeholder="Ghi chú..."></textarea>';
+        var stampDiscount2 = calcStampDiscount();
+        var finalTotal2 = cart.reduce((s,c) => s+c.price*c.qty, 0) + Object.values(selectedAddons).reduce((s,a) => s+a.price*a.qty, 0) - stampDiscount2;
+        if (finalTotal2 <= 0 && stampDiscount2 > 0) {
+            h += '<button type="submit" class="btn-submit" id="submitBtn" style="background:#27ae60">🎫 Đặt hàng bằng tem</button>';
+        } else {
+            h += '<button type="submit" class="btn-submit" id="submitBtn">Chuyển tới thanh toán</button>';
+        }
+        h += '</form></div>';
         m.innerHTML = h;
     }
 
@@ -1344,6 +1364,141 @@
         }
     }
 
+    // === STAMPS ===
+    var stampLookupTimer = null;
+    async function onPhoneInput(val) {
+        var phone = val.trim();
+        clearTimeout(stampLookupTimer);
+        if (phone.length < 4) { customerStamps = []; customerStampPhone = ''; renderStampInfo(); return; }
+        stampLookupTimer = setTimeout(async function() {
+            customerStampPhone = phone;
+            var snap = await db.collection('customerStamps').where('phone', '==', phone).get();
+            customerStamps = [];
+            snap.forEach(function(doc) { customerStamps.push({ id: doc.id, ...doc.data() }); });
+            renderStampInfo();
+            renderCartContent();
+        }, 500);
+    }
+
+    function renderStampInfo() {
+        var el = document.getElementById('stampInfo');
+        if (!el) return;
+        var hasStamps = customerStamps.filter(function(s) { return s.remaining > 0; });
+        if (hasStamps.length === 0) {
+            if (stampPackages.length > 0 && customerStampPhone) {
+                el.innerHTML = '<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:10px 14px;margin:8px 0;font-size:0.85rem">'
+                    + '<p style="font-weight:600;margin-bottom:6px">🎫 Chưa có tem — Mua gói tem?</p>'
+                    + stampPackages.map(function(p) {
+                        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #ffe08a">'
+                            + '<span>' + p.name + ' (' + p.quantity + ' tem ' + (p.categoryName || '') + ')</span>'
+                            + '<button type="button" onclick="buyStampPackage(\'' + p.id + '\')" style="background:var(--primary);color:#fff;border:none;padding:4px 12px;border-radius:6px;font-size:0.8rem;cursor:pointer">' + fmtPrice(p.price) + '</button>'
+                            + '</div>';
+                    }).join('')
+                    + '</div>';
+            } else {
+                el.innerHTML = '';
+            }
+            return;
+        }
+        var h = '<div style="background:#d4edda;border:1px solid #28a745;border-radius:10px;padding:10px 14px;margin:8px 0;font-size:0.85rem">'
+            + '<p style="font-weight:600;margin-bottom:4px">🎫 Tem của bạn</p>';
+        hasStamps.forEach(function(s) {
+            h += '<div style="display:flex;justify-content:space-between;padding:3px 0">'
+                + '<span>' + (s.categoryName || '') + '</span>'
+                + '<strong>' + s.remaining + ' tem</strong></div>';
+        });
+        if (stampPackages.length > 0) {
+            h += '<div style="border-top:1px solid #a3d9a5;margin-top:6px;padding-top:6px"><p style="font-weight:600;font-size:0.82rem;margin-bottom:4px">Mua thêm tem:</p>';
+            stampPackages.forEach(function(p) {
+                h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">'
+                    + '<span style="font-size:0.82rem">' + p.name + ' (' + p.quantity + ' tem)</span>'
+                    + '<button type="button" onclick="buyStampPackage(\'' + p.id + '\')" style="background:var(--primary);color:#fff;border:none;padding:3px 10px;border-radius:6px;font-size:0.78rem;cursor:pointer">' + fmtPrice(p.price) + '</button>'
+                    + '</div>';
+            });
+            h += '</div>';
+        }
+        h += '</div>';
+        el.innerHTML = h;
+    }
+
+    function calcStampDiscount() {
+        if (customerStamps.length === 0) return 0;
+        var discount = 0;
+        cart.forEach(function(c) {
+            var p = allProducts.find(function(x) { return x.id === c.id; });
+            if (!p || !p.categoryId) return;
+            var stamp = customerStamps.find(function(s) { return s.categoryId === p.categoryId && s.remaining > 0; });
+            if (stamp) {
+                var use = Math.min(c.qty, stamp.remaining);
+                discount += c.price * use;
+            }
+        });
+        return discount;
+    }
+
+    function calcStampUsage() {
+        var usage = [];
+        if (customerStamps.length === 0) return usage;
+        var tempStamps = {};
+        customerStamps.forEach(function(s) { tempStamps[s.id] = { remaining: s.remaining, categoryId: s.categoryId }; });
+        cart.forEach(function(c) {
+            var p = allProducts.find(function(x) { return x.id === c.id; });
+            if (!p || !p.categoryId) return;
+            for (var sid in tempStamps) {
+                var ts = tempStamps[sid];
+                if (ts.categoryId === p.categoryId && ts.remaining > 0) {
+                    var use = Math.min(c.qty, ts.remaining);
+                    if (use > 0) {
+                        usage.push({ stampId: sid, qty: use });
+                        ts.remaining -= use;
+                    }
+                    break;
+                }
+            }
+        });
+        return usage;
+    }
+
+    async function buyStampPackage(pkgId) {
+        var pkg = stampPackages.find(function(p) { return p.id === pkgId; });
+        if (!pkg) return;
+        var phone = customerStampPhone;
+        if (!phone) { alert('Vui lòng nhập số điện thoại trước'); return; }
+        if (!confirm('Mua gói "' + pkg.name + '" với giá ' + fmtPrice(pkg.price) + '?')) return;
+        var code = 'TEM-' + Date.now().toString(36).toUpperCase().slice(-4) + Math.random().toString(36).toUpperCase().slice(2, 5);
+        var existing = await db.collection('customerStamps').where('phone', '==', phone).where('categoryId', '==', pkg.categoryId).get();
+        if (!existing.empty) {
+            var doc = existing.docs[0];
+            var d = doc.data();
+            await db.collection('customerStamps').doc(doc.id).update({
+                remaining: (d.remaining || 0) + pkg.quantity,
+                total: (d.total || 0) + pkg.quantity
+            });
+        } else {
+            await db.collection('customerStamps').add({
+                phone: phone, name: '', categoryId: pkg.categoryId, categoryName: pkg.categoryName,
+                remaining: pkg.quantity, total: pkg.quantity, code: code, type: 'purchase',
+                packageId: pkgId, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+        await db.collection('stampOrders').add({
+            phone: phone, packageId: pkgId, packageName: pkg.name,
+            quantity: pkg.quantity, price: pkg.price, code: code,
+            status: 'pending', createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        var snap2 = await db.collection('customerStamps').where('phone', '==', phone).get();
+        customerStamps = [];
+        snap2.forEach(function(doc) { customerStamps.push({ id: doc.id, ...doc.data() }); });
+        renderStampInfo();
+        renderCartContent();
+        if (apipaySettings) {
+            var payCode = 'TEM' + Date.now().toString(36).toUpperCase().slice(-6) + Math.random().toString(36).toUpperCase().slice(2, 4);
+            showApiPayQR(payCode, pkg.price, code, null);
+        } else {
+            showToast('Đã mua gói tem! Liên hệ shop để thanh toán.', 4000);
+        }
+    }
+
     // === ORDER ===
     async function submitOrder(e) {
         e.preventDefault();
@@ -1361,45 +1516,64 @@
         if (!document.getElementById('customerPhone').value.trim()) { alert('Vui lòng nhập số điện thoại'); return; }
         const payMethod = document.getElementById('payMethod').value;
         var orderTotal = cart.reduce((s,c) => s+c.price*c.qty, 0) + Object.values(selectedAddons).reduce((s,a) => s+a.price*a.qty, 0);
+        var stampUsage = calcStampUsage();
+        var stampDiscount = calcStampDiscount();
+        var finalTotal = Math.max(0, orderTotal - stampDiscount);
         var paymentCode = 'DH' + Date.now().toString(36).toUpperCase().slice(-6) + Math.random().toString(36).toUpperCase().slice(2,4);
         const order = {
             customer: document.getElementById('customerName').value.trim(),
             phone: document.getElementById('customerPhone').value.trim(),
             address: address,
-            payMethod: payMethod,
+            payMethod: finalTotal === 0 ? 'stamp' : payMethod,
             transferConfirmed: payMethod === 'transfer' ? transferConfirmed : null,
             paymentCode: paymentCode,
             note: document.getElementById('customerNote').value.trim(),
             items: cart.map(function(c) { var p = allProducts.find(function(x){return x.id===c.id}); var cat = p && p.categoryId ? allCategories.find(function(x){return x.id===p.categoryId}) : null; return {id:c.id, name:c.name, price:c.price, qty:c.qty, category: cat ? cat.name : ''}; }).concat(Object.values(selectedAddons).map(a => ({id:a.id, name:a.name, price:a.price, qty:a.qty, addon:true}))),
             total: orderTotal,
-            status: 'pending',
+            stampDiscount: stampDiscount,
+            finalTotal: finalTotal,
+            stampUsed: stampUsage.length > 0,
+            status: finalTotal === 0 ? 'confirmed' : 'pending',
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         };
         const docRef = await db.collection('orders').add(order);
+        for (var si = 0; si < stampUsage.length; si++) {
+            var su = stampUsage[si];
+            var stampDoc = await db.collection('customerStamps').doc(su.stampId).get();
+            if (stampDoc.exists) {
+                var sr = stampDoc.data().remaining || 0;
+                await db.collection('customerStamps').doc(su.stampId).update({ remaining: Math.max(0, sr - su.qty) });
+            }
+        }
         await db.collection('notifications').add({
             type: 'new_order',
             message: 'Đơn mới từ ' + order.customer + ' - ' + fmtPrice(order.total),
             read: false,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        var isTransfer = payMethod === 'transfer';
-        if (!(isTransfer && apipaySettings)) {
+        var isTransfer = order.payMethod === 'transfer';
+        var isStampPaid = order.payMethod === 'stamp';
+        if (isStampPaid || !(isTransfer && apipaySettings)) {
             sendTelegramNotify(order, docRef.id);
             if (pushSubs.length) {
                 fetch('/api/push', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ title: 'Đơn hàng mới!', body: order.customer + ' — ' + fmtPrice(order.total) + 'đ', subs: pushSubs })
+                    body: JSON.stringify({ title: 'Đơn hàng mới!', body: order.customer + ' — ' + (isStampPaid ? '🎫 Tem' : fmtPrice(order.total) + 'đ'), subs: pushSubs })
                 }).catch(function(){});
             }
         }
         cart = [];
         selectedAddons = {};
+        customerStamps = [];
+        customerStampPhone = '';
         updateCart();
         closeCart();
         const shortId = docRef.id.slice(-6).toUpperCase();
-        if (isTransfer && apipaySettings) {
-            showApiPayQR(paymentCode, orderTotal, shortId, docRef.id);
+        if (isStampPaid) {
+            showToast('Đặt hàng bằng tem thành công! Mã đơn: ' + shortId, 5000);
+        } else if (isTransfer && apipaySettings) {
+            showApiPayQR(paymentCode, finalTotal, shortId, docRef.id);
         } else if (isTransfer && zaloLink) {
             showTransferReminder(shortId);
         } else {
