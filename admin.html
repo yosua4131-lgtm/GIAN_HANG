@@ -321,6 +321,7 @@
                     <div style="display:flex;gap:8px;margin-bottom:4px">
                         <label style="display:flex;align-items:center;gap:4px;font-size:0.88rem;font-weight:600;cursor:pointer"><input type="radio" name="stampMode" value="category" checked onchange="toggleStampMode()"> Theo loại món</label>
                         <label style="display:flex;align-items:center;gap:4px;font-size:0.88rem;font-weight:600;cursor:pointer"><input type="radio" name="stampMode" value="products" onchange="toggleStampMode()"> Chọn từng món</label>
+                        <label style="display:flex;align-items:center;gap:4px;font-size:0.88rem;font-weight:600;cursor:pointer"><input type="radio" name="stampMode" value="price" onchange="toggleStampMode()"> Theo giá món</label>
                     </div>
                     <div id="stampModeCategory">
                         <select id="stampCategoryId" style="width:100%;padding:10px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:0.9rem">
@@ -330,6 +331,10 @@
                     <div id="stampModeProducts" style="display:none;max-height:200px;overflow-y:auto;border:1.5px solid #ddd;border-radius:8px;padding:10px 14px">
                         <p style="font-size:0.82rem;color:#888;margin-bottom:8px">Tick chọn các món áp dụng cho tem này:</p>
                         <div id="stampProductList"></div>
+                    </div>
+                    <div id="stampModePrice" style="display:none">
+                        <input type="number" id="stampTargetPrice" placeholder="Giá món áp dụng (VD: 30000)" min="0" style="width:100%;padding:10px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:0.9rem">
+                        <p style="font-size:0.78rem;color:#888;margin-top:4px" id="stampPricePreview"></p>
                     </div>
                     <div style="display:flex;gap:10px">
                         <input type="number" id="stampQty" placeholder="Số lượng tem" min="1" style="flex:1;padding:10px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:0.9rem">
@@ -1236,7 +1241,22 @@
             var mode = document.querySelector('input[name="stampMode"]:checked').value;
             document.getElementById('stampModeCategory').style.display = mode === 'category' ? 'block' : 'none';
             document.getElementById('stampModeProducts').style.display = mode === 'products' ? 'block' : 'none';
+            document.getElementById('stampModePrice').style.display = mode === 'price' ? 'block' : 'none';
             if (mode === 'products') renderStampProductList();
+            if (mode === 'price') {
+                var inp = document.getElementById('stampTargetPrice');
+                inp.oninput = function() { updateStampPricePreview(); };
+                updateStampPricePreview();
+            }
+        }
+
+        function updateStampPricePreview() {
+            var val = parseInt(document.getElementById('stampTargetPrice').value);
+            var el = document.getElementById('stampPricePreview');
+            if (isNaN(val) || val < 0) { el.textContent = ''; return; }
+            var matched = allProducts.filter(function(p) { return p.price === val; });
+            if (matched.length === 0) { el.textContent = 'Không có món nào giá ' + val.toLocaleString('vi-VN') + 'đ'; return; }
+            el.textContent = 'Áp dụng ' + matched.length + ' món: ' + matched.map(function(p) { return p.name; }).join(', ');
         }
 
         function renderStampProductList(selectedIds) {
@@ -1280,7 +1300,12 @@
                 document.getElementById('stampName').value = pkg.name || '';
                 document.getElementById('stampQty').value = pkg.quantity || '';
                 document.getElementById('stampPrice').value = pkg.price || '';
-                if (pkg.productIds && pkg.productIds.length > 0) {
+                if (pkg.mode === 'price' && pkg.targetPrice !== undefined) {
+                    document.querySelector('input[name="stampMode"][value="price"]').checked = true;
+                    toggleStampMode();
+                    document.getElementById('stampTargetPrice').value = pkg.targetPrice;
+                    updateStampPricePreview();
+                } else if (pkg.productIds && pkg.productIds.length > 0 && pkg.mode !== 'price') {
                     document.querySelector('input[name="stampMode"][value="products"]').checked = true;
                     toggleStampMode();
                     renderStampProductList(pkg.productIds);
@@ -1331,7 +1356,8 @@
                 data.categoryName = catName;
                 data.productIds = [];
                 data.productNames = [];
-            } else {
+                data.targetPrice = '';
+            } else if (mode === 'products') {
                 var cbs = document.querySelectorAll('.stamp-product-cb:checked');
                 if (cbs.length === 0) { alert('Vui lòng chọn ít nhất 1 món'); return; }
                 var pIds = [], pNames = [];
@@ -1340,6 +1366,17 @@
                 data.productNames = pNames;
                 data.categoryId = '';
                 data.categoryName = pNames.join(', ');
+                data.targetPrice = '';
+            } else if (mode === 'price') {
+                var targetPrice = parseInt(document.getElementById('stampTargetPrice').value);
+                if (isNaN(targetPrice) || targetPrice < 0) { alert('Vui lòng nhập giá món áp dụng'); return; }
+                var matched = allProducts.filter(function(p) { return p.price === targetPrice; });
+                if (matched.length === 0) { alert('Không có món nào giá ' + targetPrice.toLocaleString('vi-VN') + 'đ'); return; }
+                data.targetPrice = targetPrice;
+                data.categoryId = '';
+                data.categoryName = 'Món giá ' + targetPrice.toLocaleString('vi-VN') + 'đ';
+                data.productIds = matched.map(function(p) { return p.id; });
+                data.productNames = matched.map(function(p) { return p.name; });
             }
             if (editingPackageId) {
                 await db.collection('stampPackages').doc(editingPackageId).update(data);

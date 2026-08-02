@@ -1433,6 +1433,9 @@
     function stampMatchesItem(stamp, cartItem) {
         var p = allProducts.find(function(x) { return x.id === cartItem.id; });
         if (!p) return false;
+        if (stamp.targetPrice !== undefined && stamp.targetPrice !== '') {
+            return p.price === Number(stamp.targetPrice);
+        }
         if (stamp.productIds && stamp.productIds.length > 0) {
             return stamp.productIds.indexOf(cartItem.id) !== -1;
         }
@@ -1503,6 +1506,7 @@
                     packageId: pkgId, createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
                 if (pkg.productIds && pkg.productIds.length > 0) stampData.productIds = pkg.productIds;
+                if (pkg.targetPrice !== undefined && pkg.targetPrice !== '') stampData.targetPrice = pkg.targetPrice;
                 await db.collection('customerStamps').add(stampData);
             }
             var snap2 = await db.collection('customerStamps').where('phone', '==', phone).get();
@@ -1525,6 +1529,7 @@
             stampCategoryName: pkg.categoryName || '',
             stampQuantity: pkg.quantity,
             stampProductIds: pkg.productIds || [],
+            stampTargetPrice: pkg.targetPrice !== undefined ? pkg.targetPrice : '',
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
         await db.collection('notifications').add({

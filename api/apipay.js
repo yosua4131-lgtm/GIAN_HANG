@@ -177,6 +177,7 @@ module.exports = async function handler(req, res) {
             var stampQty = Number(orderData.stampQuantity);
             var stampCode = orderData.stampCode || '';
             var stampProductIds = orderData.stampProductIds || [];
+            var stampTargetPrice = orderData.stampTargetPrice || '';
 
             var existingStamps = stampCatId ? await fsQuery('customerStamps', [
                 { field: 'phone', op: 'EQUAL', value: stampPhone },
@@ -199,6 +200,9 @@ module.exports = async function handler(req, res) {
                 };
                 if (stampProductIds.length > 0) {
                     stampData.productIds = stampProductIds;
+                }
+                if (stampTargetPrice !== '') {
+                    stampData.targetPrice = stampTargetPrice;
                 }
                 await fsCreate('customerStamps', stampData);
             }
