@@ -178,10 +178,11 @@ module.exports = async function handler(req, res) {
             var stampCode = orderData.stampCode || '';
             var stampProductIds = orderData.stampProductIds || [];
             var stampTargetPrice = orderData.stampTargetPrice || '';
+            var stampPackageId = orderData.stampPackageId || '';
 
-            var existingStamps = stampCatId ? await fsQuery('customerStamps', [
+            var existingStamps = stampPackageId ? await fsQuery('customerStamps', [
                 { field: 'phone', op: 'EQUAL', value: stampPhone },
-                { field: 'categoryId', op: 'EQUAL', value: stampCatId }
+                { field: 'packageId', op: 'EQUAL', value: stampPackageId }
             ]) : [];
 
             if (existingStamps.length > 0) {
@@ -196,7 +197,7 @@ module.exports = async function handler(req, res) {
                 var stampData = {
                     phone: stampPhone, name: '', categoryId: stampCatId, categoryName: stampCatName,
                     remaining: stampQty, total: stampQty, code: stampCode, type: 'purchase',
-                    createdAt: new Date().toISOString()
+                    packageId: stampPackageId, createdAt: new Date().toISOString()
                 };
                 if (stampProductIds.length > 0) {
                     stampData.productIds = stampProductIds;

@@ -352,8 +352,8 @@
                 <div style="display:flex;flex-direction:column;gap:10px">
                     <input type="text" id="assignPhone" placeholder="Số điện thoại khách" style="padding:10px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:0.9rem">
                     <input type="text" id="assignName" placeholder="Tên khách (tùy chọn)" style="padding:10px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:0.9rem">
-                    <select id="assignCategoryId" style="padding:10px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:0.9rem">
-                        <option value="">-- Chọn loại món --</option>
+                    <select id="assignPackageId" style="padding:10px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:0.9rem">
+                        <option value="">-- Chọn gói tem --</option>
                     </select>
                     <input type="number" id="assignQty" placeholder="Số lượng tem" min="1" style="padding:10px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:0.9rem">
                     <div style="display:flex;gap:8px">
@@ -1332,9 +1332,13 @@
         }
 
         function openAssignStampForm() {
-            updateStampCategorySelects();
             document.getElementById('assignStampForm').style.display = 'block';
             document.getElementById('stampPackageForm').style.display = 'none';
+            var sel = document.getElementById('assignPackageId');
+            sel.innerHTML = '<option value="">-- Chọn gói tem --</option>';
+            allStampPackages.forEach(function(p) {
+                sel.innerHTML += '<option value="' + p.id + '">' + p.name + ' (' + (p.categoryName || '') + ')</option>';
+            });
         }
 
         function closeAssignStampForm() {
@@ -1402,32 +1406,39 @@
         async function assignStamp() {
             var phone = document.getElementById('assignPhone').value.trim();
             var name = document.getElementById('assignName').value.trim();
-            var categoryId = document.getElementById('assignCategoryId').value;
+            var pkgId = document.getElementById('assignPackageId').value;
             var qty = parseInt(document.getElementById('assignQty').value);
-            if (!phone || !categoryId || !qty) { alert('Vui lòng điền SĐT, loại món và số lượng'); return; }
-            var catName = (allCategories.find(function(c) { return c.id === categoryId; }) || {}).name || '';
-            var existing = await db.collection('customerStamps').where('phone', '==', phone).where('categoryId', '==', categoryId).get();
-            if (!existing.empty) {
-                var doc = existing.docs[0];
-                var d = doc.data();
-                await db.collection('customerStamps').doc(doc.id).update({
+            if (!phone || !pkgId || !qty) { alert('Vui lòng điền SĐT, chọn gói tem và số lượng'); return; }
+            var pkg = allStampPackages.find(function(p) { return p.id === pkgId; });
+            if (!pkg) { alert('Gói tem không tồn tại'); return; }
+            var existing = await db.collection('customerStamps').where('phone', '==', phone).get();
+            var existDoc = null;
+            existing.forEach(function(doc) {
+                if (doc.data().packageId === pkgId) existDoc = doc;
+            });
+            if (existDoc) {
+                var d = existDoc.data();
+                await db.collection('customerStamps').doc(existDoc.id).update({
                     remaining: (d.remaining || 0) + qty,
                     total: (d.total || 0) + qty,
                     name: name || d.name || ''
                 });
             } else {
                 var code = 'TEM-' + Date.now().toString(36).toUpperCase().slice(-4) + Math.random().toString(36).toUpperCase().slice(2,5);
-                await db.collection('customerStamps').add({
-                    phone: phone, name: name, categoryId: categoryId, categoryName: catName,
-                    remaining: qty, total: qty, code: code, type: 'admin',
+                var stampData = {
+                    phone: phone, name: name, categoryId: pkg.categoryId || '', categoryName: pkg.categoryName || '',
+                    remaining: qty, total: qty, code: code, type: 'admin', packageId: pkgId,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
+                };
+                if (pkg.productIds && pkg.productIds.length > 0) stampData.productIds = pkg.productIds;
+                if (pkg.targetPrice !== undefined && pkg.targetPrice !== '') stampData.targetPrice = pkg.targetPrice;
+                await db.collection('customerStamps').add(stampData);
             }
             closeAssignStampForm();
             document.getElementById('assignPhone').value = '';
             document.getElementById('assignName').value = '';
             document.getElementById('assignQty').value = '';
-            alert('Đã gán ' + qty + ' tem ' + catName + ' cho ' + phone);
+            alert('Đã gán ' + qty + ' tem "' + pkg.name + '" cho ' + phone);
             loadStamps();
         }
 
@@ -1453,7 +1464,7 @@
                 h += '<div style="background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:8px">'
                     + '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">'
                     + '<div><strong>' + p.name + '</strong> ' + statusBadge
-                    + '<br><span style="font-size:0.85rem;color:#666">' + (p.mode === 'products' ? 'Món: ' : 'Loại: ') + (p.categoryName || '') + ' · ' + p.quantity + ' tem · ' + formatPrice(p.price) + '</span></div>'
+                    + '<br><span style="font-size:0.85rem;color:#666">' + (p.mode === 'products' ? 'Món: ' : p.mode === 'price' ? 'Giá: ' : 'Loại: ') + (p.categoryName || '') + ' · ' + p.quantity + ' tem · ' + formatPrice(p.price) + '</span></div>'
                     + '<div style="display:flex;gap:6px">'
                     + '<button class="btn-secondary" style="font-size:0.78rem;padding:4px 10px" onclick="openStampPackageForm(\'' + p.id + '\')">Sửa</button>'
                     + '<button class="btn-secondary" style="font-size:0.78rem;padding:4px 10px" onclick="toggleStampPackage(\'' + p.id + '\',' + !p.active + ')">' + (p.active ? 'Ẩn' : 'Hiện') + '</button>'

@@ -1491,11 +1491,15 @@
         var code = 'TEM-' + Date.now().toString(36).toUpperCase().slice(-4) + Math.random().toString(36).toUpperCase().slice(2, 5);
         var isFree = !pkg.price || pkg.price <= 0;
         if (isFree) {
-            var existing = pkg.categoryId ? await db.collection('customerStamps').where('phone', '==', phone).where('categoryId', '==', pkg.categoryId).get() : { empty: true };
-            if (!existing.empty) {
-                var doc = existing.docs[0];
+            var allMyStamps = await db.collection('customerStamps').where('phone', '==', phone).get();
+            var existDoc = null;
+            allMyStamps.forEach(function(doc) {
                 var d = doc.data();
-                await db.collection('customerStamps').doc(doc.id).update({
+                if (d.packageId === pkgId) existDoc = doc;
+            });
+            if (existDoc) {
+                var d = existDoc.data();
+                await db.collection('customerStamps').doc(existDoc.id).update({
                     remaining: (d.remaining || 0) + pkg.quantity,
                     total: (d.total || 0) + pkg.quantity
                 });
