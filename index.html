@@ -1027,7 +1027,7 @@
     // === MENU ===
     async function loadMenu() {
         const grid = document.getElementById('menuGrid');
-        const [catSnap, prodSnap, addrSnap, payDoc, addonSnap, addonSettDoc, apipayDoc, stampPkgSnap] = await Promise.all([
+        const [catSnap, prodSnap, addrSnap, payDoc, addonSnap, addonSettDoc, apipayDoc, stampPkgSnap, shopStatusDoc] = await Promise.all([
             db.collection('categories').orderBy('order').get(),
             db.collection('products').where('active', '==', true).get(),
             db.collection('addresses').orderBy('order').get(),
@@ -1035,8 +1035,18 @@
             db.collection('addons').orderBy('order').get(),
             db.collection('settings').doc('addons').get(),
             db.collection('settings').doc('apipay').get(),
-            db.collection('stampPackages').where('active', '==', true).get()
+            db.collection('stampPackages').where('active', '==', true).get(),
+            db.collection('settings').doc('shopStatus').get()
         ]);
+        if (shopStatusDoc.exists && shopStatusDoc.data().closed === true) {
+            document.body.innerHTML = '<div style="position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,#fff5f5,#ffe0e0);display:flex;align-items:center;justify-content:center;z-index:99999">'
+                + '<div style="text-align:center;padding:32px 24px;max-width:400px">'
+                + '<div style="font-size:4rem;margin-bottom:16px">🚫</div>'
+                + '<h2 style="font-size:1.4rem;color:#e63946;margin-bottom:12px">Shop tạm thời đóng cửa</h2>'
+                + '<p style="font-size:1rem;color:#666;line-height:1.6">Vui lòng liên hệ Admin để biết thêm thông tin.<br>Xin lỗi vì sự bất tiện!</p>'
+                + '</div></div>';
+            return;
+        }
         qrUrl = (payDoc.exists && payDoc.data().qrUrl) ? payDoc.data().qrUrl : '';
         apipaySettings = (apipayDoc.exists && apipayDoc.data().accessKey) ? apipayDoc.data() : null;
         addonRequiredCat = (addonSettDoc.exists && addonSettDoc.data().requiredCategory) ? addonSettDoc.data().requiredCategory : '';

@@ -405,6 +405,19 @@
                 </div>
                 <p id="settingPassStatus" style="font-size:0.85rem;margin-top:8px"></p>
             </div>
+
+            <div style="background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:18px;max-width:400px;margin-top:16px">
+                <h3 style="font-size:1rem;margin-bottom:12px">🚫 Đóng Shop</h3>
+                <p style="font-size:0.82rem;color:#888;margin-bottom:12px">Bật để tạm đóng shop. Khách hàng sẽ thấy thông báo "Shop tạm đóng" và không đặt hàng được.</p>
+                <div style="display:flex;align-items:center;gap:12px">
+                    <label style="position:relative;display:inline-block;width:50px;height:28px;cursor:pointer">
+                        <input type="checkbox" id="shopClosedToggle" onchange="toggleShopClosed()" style="opacity:0;width:0;height:0">
+                        <span id="shopClosedSlider" style="position:absolute;top:0;left:0;right:0;bottom:0;background:#ccc;border-radius:28px;transition:0.3s"></span>
+                        <span id="shopClosedDot" style="position:absolute;top:2px;left:2px;width:24px;height:24px;background:#fff;border-radius:50%;transition:0.3s;box-shadow:0 1px 3px rgba(0,0,0,0.2)"></span>
+                    </label>
+                    <span id="shopClosedLabel" style="font-weight:600;font-size:0.9rem">Đang mở</span>
+                </div>
+            </div>
         </section>
     </main>
 
@@ -527,6 +540,33 @@
                 st.style.color = '#888';
                 st.textContent = 'Chưa đặt mật khẩu phụ — chỉ dùng mật khẩu gốc';
             }
+            var shopDoc = await db.collection('settings').doc('shopStatus').get();
+            var closed = shopDoc.exists && shopDoc.data().closed === true;
+            updateShopToggleUI(closed);
+            document.getElementById('shopClosedToggle').checked = closed;
+        }
+
+        function updateShopToggleUI(closed) {
+            var slider = document.getElementById('shopClosedSlider');
+            var dot = document.getElementById('shopClosedDot');
+            var label = document.getElementById('shopClosedLabel');
+            if (closed) {
+                slider.style.background = '#e63946';
+                dot.style.left = '24px';
+                label.textContent = 'Đang đóng';
+                label.style.color = '#e63946';
+            } else {
+                slider.style.background = '#27ae60';
+                dot.style.left = '2px';
+                label.textContent = 'Đang mở';
+                label.style.color = '#27ae60';
+            }
+        }
+
+        async function toggleShopClosed() {
+            var closed = document.getElementById('shopClosedToggle').checked;
+            await db.collection('settings').doc('shopStatus').set({ closed: closed });
+            updateShopToggleUI(closed);
         }
 
         function switchTab(name) {
