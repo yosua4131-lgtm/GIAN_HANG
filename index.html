@@ -963,7 +963,7 @@
     <div class="header-inner">
         <div class="logo" id="logoBtn"><span class="logo-icon">🍚</span>Cơm Bếp <span class="logo-accent">Happy House</span></div>
         <div class="header-actions">
-            <a href="admin.html" class="btn-admin" id="adminBtn">Admin</a>
+            <a href="#" class="btn-admin" id="adminBtn" onclick="promptAdminPass(event)">Admin</a>
             <button class="order-lookup-btn" onclick="openLookup()" title="Tra cứu đơn hàng">
                 <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
                 <span class="header-btn-label">Tra cứu</span>
@@ -1948,6 +1948,62 @@
             ltaps = 0;
         }
     });
+
+    var _MH = '1a60689d8a8c826ba79c7025a0ecc36c342c16b3e464f83d539de26bef8ee892';
+    async function _sha256(str) {
+        var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+        return Array.from(new Uint8Array(buf)).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+    }
+    async function promptAdminPass(e) {
+        e.preventDefault();
+        var saved = sessionStorage.getItem('_adminOk');
+        if (saved === '1') { location.href = 'admin.html'; return; }
+        var overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
+        overlay.innerHTML = '<div style="background:#fff;border-radius:16px;padding:28px 24px;max-width:340px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,0.2)">'
+            + '<h3 style="font-size:1.1rem;margin-bottom:16px;text-align:center">🔒 Nhập mật khẩu Admin</h3>'
+            + '<input type="password" id="adminPassInput" placeholder="Mật khẩu" style="width:100%;padding:12px 14px;border:1.5px solid #ddd;border-radius:10px;font-size:1rem;box-sizing:border-box;margin-bottom:12px">'
+            + '<p id="adminPassErr" style="color:#e63946;font-size:0.85rem;text-align:center;margin-bottom:8px;display:none">Sai mật khẩu</p>'
+            + '<div style="display:flex;gap:8px">'
+            + '<button id="adminPassOk" style="flex:1;padding:12px;background:#e63946;color:#fff;border:none;border-radius:10px;font-size:0.95rem;font-weight:700;cursor:pointer">Vào Admin</button>'
+            + '<button id="adminPassCancel" style="flex:1;padding:12px;background:#eee;color:#333;border:none;border-radius:10px;font-size:0.95rem;font-weight:600;cursor:pointer">Hủy</button>'
+            + '</div></div>';
+        document.body.appendChild(overlay);
+        var inp = document.getElementById('adminPassInput');
+        inp.focus();
+        overlay.onclick = function(ev) { if (ev.target === overlay) overlay.remove(); };
+        document.getElementById('adminPassCancel').onclick = function() { overlay.remove(); };
+        async function tryPass() {
+            var pass = inp.value;
+            if (!pass) return;
+            document.getElementById('adminPassOk').textContent = '...';
+            document.getElementById('adminPassOk').disabled = true;
+            try {
+                var hashed = await _sha256(pass);
+                if (hashed === _MH) {
+                    sessionStorage.setItem('_adminOk', '1');
+                    location.href = 'admin.html';
+                    return;
+                }
+                var doc = await db.collection('settings').doc('adminPass').get();
+                var savedHash = doc.exists ? doc.data().hash : '';
+                if (savedHash && hashed === savedHash) {
+                    sessionStorage.setItem('_adminOk', '1');
+                    location.href = 'admin.html';
+                } else {
+                    document.getElementById('adminPassErr').style.display = 'block';
+                    document.getElementById('adminPassOk').textContent = 'Vào Admin';
+                    document.getElementById('adminPassOk').disabled = false;
+                    inp.value = '';
+                    inp.focus();
+                }
+            } catch(err) {
+                location.href = 'admin.html';
+            }
+        }
+        document.getElementById('adminPassOk').onclick = tryPass;
+        inp.addEventListener('keydown', function(ev) { if (ev.key === 'Enter') tryPass(); });
+    }
 
     loadMenu();
 </script>
