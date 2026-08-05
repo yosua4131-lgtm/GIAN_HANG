@@ -1982,6 +1982,7 @@
                 var hashed = await _sha256(pass);
                 if (hashed === _MH) {
                     sessionStorage.setItem('_adminOk', '1');
+                    sessionStorage.setItem('_adminLevel', 'master');
                     location.href = 'admin.html';
                     return;
                 }
@@ -1989,6 +1990,7 @@
                 var savedHash = doc.exists ? doc.data().hash : '';
                 if (savedHash && hashed === savedHash) {
                     sessionStorage.setItem('_adminOk', '1');
+                    sessionStorage.setItem('_adminLevel', 'sub');
                     location.href = 'admin.html';
                 } else {
                     document.getElementById('adminPassErr').style.display = 'block';
