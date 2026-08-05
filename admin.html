@@ -439,7 +439,7 @@
             var header = document.querySelector('.admin-header');
             if (sessionStorage.getItem('_adminOk') === '1') {
                 gate.style.display = 'none';
-                var level = sessionStorage.getItem('_adminLevel') || 'master';
+                var level = sessionStorage.getItem('_adminLevel') || 'sub';
                 if (level !== 'master') {
                     PROTECTED_TABS.forEach(function(t) {
                         var btns = document.querySelectorAll('.tab');
@@ -554,7 +554,7 @@
         }
 
         function switchTab(name) {
-            var level = sessionStorage.getItem('_adminLevel') || 'master';
+            var level = sessionStorage.getItem('_adminLevel') || 'sub';
             if (level !== 'master' && PROTECTED_TABS.indexOf(name) !== -1) {
                 alert('Chức năng này cần mật khẩu chủ shop');
                 return;
