@@ -1039,19 +1039,20 @@
                 return;
             }
         } catch(e) {}
-        const [catSnap, prodSnap, addrSnap, payDoc, addonSnap, addonSettDoc, apipayDoc, stampPkgSnap] = await Promise.all([
+        const [catSnap, prodSnap, addrSnap, addonSnap, stampPkgSnap] = await Promise.all([
             db.collection('categories').orderBy('order').get(),
             db.collection('products').where('active', '==', true).get(),
             db.collection('addresses').orderBy('order').get(),
-            db.collection('settings').doc('payment').get(),
             db.collection('addons').orderBy('order').get(),
-            db.collection('settings').doc('addons').get(),
-            db.collection('settings').doc('apipay').get(),
             db.collection('stampPackages').where('active', '==', true).get()
         ]);
-        qrUrl = (payDoc.exists && payDoc.data().qrUrl) ? payDoc.data().qrUrl : '';
-        apipaySettings = (apipayDoc.exists && apipayDoc.data().accessKey) ? apipayDoc.data() : null;
-        addonRequiredCat = (addonSettDoc.exists && addonSettDoc.data().requiredCategory) ? addonSettDoc.data().requiredCategory : '';
+        var payDoc = null, apipayDoc = null, addonSettDoc = null;
+        try { payDoc = await db.collection('settings').doc('payment').get(); } catch(e) {}
+        try { apipayDoc = await db.collection('settings').doc('apipay').get(); } catch(e) {}
+        try { addonSettDoc = await db.collection('settings').doc('addons').get(); } catch(e) {}
+        qrUrl = (payDoc && payDoc.exists && payDoc.data().qrUrl) ? payDoc.data().qrUrl : '';
+        apipaySettings = (apipayDoc && apipayDoc.exists && apipayDoc.data().accessKey) ? apipayDoc.data() : null;
+        addonRequiredCat = (addonSettDoc && addonSettDoc.exists && addonSettDoc.data().requiredCategory) ? addonSettDoc.data().requiredCategory : '';
 
         allCategories = [];
         catSnap.forEach(doc => allCategories.push({ id: doc.id, ...doc.data() }));
