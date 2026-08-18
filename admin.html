@@ -452,6 +452,7 @@
             var header = document.querySelector('.admin-header');
             if (sessionStorage.getItem('_adminOk') === '1') {
                 gate.style.display = 'none';
+                init();
                 return;
             }
             gate.style.display = 'flex';
@@ -470,6 +471,7 @@
             var header = document.querySelector('.admin-header');
             if (main) main.style.display = '';
             if (header) header.style.display = '';
+            init();
         }
 
         function getTabLabel(name) {
@@ -1751,7 +1753,6 @@
             checkNotifications();
             updatePushUI();
         }
-        init();
     </script>
 </body>
 </html>
