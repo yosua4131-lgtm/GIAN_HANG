@@ -90,7 +90,9 @@ module.exports = async function handler(req, res) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + bearerToken
+                'Authorization': 'Bearer ' + bearerToken,
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'application/json'
             },
             body: JSON.stringify({
                 bankPublicId: bankId,
