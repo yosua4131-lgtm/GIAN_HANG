@@ -27,7 +27,14 @@ async function getAccessToken() {
         method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=' + jwt
     });
-    const data = await res.json();
+    const text = await res.text();
+    var data;
+    try { data = JSON.parse(text); } catch(e) {
+        throw new Error('OAuth response not JSON (status ' + res.status + '): ' + text.slice(0, 200));
+    }
+    if (!data.access_token) {
+        throw new Error('OAuth failed: ' + JSON.stringify(data).slice(0, 300));
+    }
     cachedToken = data.access_token;
     tokenExpiry = now + 3600;
     return cachedToken;
@@ -92,7 +99,11 @@ module.exports = async function handler(req, res) {
                 title: title || 'Thanh toan'
             })
         });
-        var data = await apiRes.json();
+        var apiText = await apiRes.text();
+        var data;
+        try { data = JSON.parse(apiText); } catch(e) {
+            throw new Error('ApiPay response not JSON (status ' + apiRes.status + '): ' + apiText.slice(0, 200));
+        }
         try {
             var token2 = await getAccessToken();
             var logFields = { lastQrResponse: { stringValue: JSON.stringify(data).slice(0, 800) }, loggedAt: { stringValue: new Date().toISOString() } };
