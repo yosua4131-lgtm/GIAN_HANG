@@ -59,22 +59,26 @@ module.exports = async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(200).send('OK');
 
-    var body = req.body || {};
-    var { bankPublicId, amount, content, title } = body;
-    if (!amount || !content) return res.status(400).json({ error: 'missing amount or content' });
-
-    var settings = await fsGet('settings', 'apipay');
-    if (!settings || !settings.accessKey || !settings.secretKey) {
-        return res.status(400).json({ error: 'ApiPay not configured', settings: settings ? Object.keys(settings) : null });
-    }
-
-    var bearerToken = Buffer.from(settings.accessKey + ':' + settings.secretKey).toString('base64');
-    var bankId = bankPublicId || settings.bankPublicId;
-    if (!bankId) {
-        return res.status(400).json({ error: 'No bankPublicId found', settingsKeys: Object.keys(settings) });
-    }
-
     try {
+        var body = req.body || {};
+        var { bankPublicId, amount, content, title } = body;
+        if (!amount || !content) return res.status(400).json({ error: 'missing amount or content' });
+
+        if (!PRIVATE_KEY || !PROJECT_ID || !CLIENT_EMAIL) {
+            return res.status(500).json({ error: 'Firebase env vars missing', has: { key: !!PRIVATE_KEY, project: !!PROJECT_ID, email: !!CLIENT_EMAIL } });
+        }
+
+        var settings = await fsGet('settings', 'apipay');
+        if (!settings || !settings.accessKey || !settings.secretKey) {
+            return res.status(400).json({ error: 'ApiPay not configured', settings: settings ? Object.keys(settings) : null });
+        }
+
+        var bearerToken = Buffer.from(settings.accessKey + ':' + settings.secretKey).toString('base64');
+        var bankId = bankPublicId || settings.bankPublicId;
+        if (!bankId) {
+            return res.status(400).json({ error: 'No bankPublicId found', settingsKeys: Object.keys(settings) });
+        }
+
         var apiRes = await fetch('https://app.apipay.vn/v1/client/payment-requests', {
             method: 'POST',
             headers: {
@@ -89,16 +93,17 @@ module.exports = async function handler(req, res) {
             })
         });
         var data = await apiRes.json();
-        // Log response for debugging
-        var token2 = await getAccessToken();
-        var logFields = { lastQrResponse: { stringValue: JSON.stringify(data).slice(0, 800) }, loggedAt: { stringValue: new Date().toISOString() } };
-        await fetch(FIRESTORE + '/settings/apipay_qr_debug?updateMask.fieldPaths=lastQrResponse&updateMask.fieldPaths=loggedAt', {
-            method: 'PATCH',
-            headers: { 'Authorization': 'Bearer ' + token2, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fields: logFields })
-        }).catch(function(){});
+        try {
+            var token2 = await getAccessToken();
+            var logFields = { lastQrResponse: { stringValue: JSON.stringify(data).slice(0, 800) }, loggedAt: { stringValue: new Date().toISOString() } };
+            await fetch(FIRESTORE + '/settings/apipay_qr_debug?updateMask.fieldPaths=lastQrResponse&updateMask.fieldPaths=loggedAt', {
+                method: 'PATCH',
+                headers: { 'Authorization': 'Bearer ' + token2, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fields: logFields })
+            });
+        } catch(logErr) {}
         return res.status(200).json(data);
     } catch (err) {
-        return res.status(500).json({ error: 'ApiPay request failed' });
+        return res.status(500).json({ error: err.message || 'Unknown error' });
     }
 };
